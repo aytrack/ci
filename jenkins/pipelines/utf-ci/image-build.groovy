@@ -1,8 +1,8 @@
 catchError {
     def label = "image-build"
     podTemplate(name: label, label: label, instanceCap: 5, idleMinutes: 480, containers: [
-        containerTemplate(name: 'dockerd', image: 'hub.pingcap.net/mirrors/docker:18.09.6-dind', privileged: true),
-        containerTemplate(name: 'docker', image: 'hub.pingcap.net/mirrors/docker:18.09.6', envVars: [envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375')], ttyEnabled: true, command: 'cat'),
+        containerTemplate(name: 'dockerd', image: 'registry-mirror.pingcap.net/library/docker:18.09.6-dind', privileged: true),
+        containerTemplate(name: 'docker', image: 'registry-mirror.pingcap.net/library/docker:18.09.6', envVars: [envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375')], ttyEnabled: true, command: 'cat'),
     ]) {
         node(label) {
             deleteDir()
