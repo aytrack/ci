@@ -31,7 +31,7 @@ catchError {
                     if (!dst) {
                         error("DESTINATION is missing!")
                     }
-                    docker.withRegistry("https://hub-new.pingcap.net", "harbor-pingcap") {
+                    docker.withRegistry("https://hub-new.pingcap.net", "harbor-qa") {
                         sh("docker build -f ${params.DOCKERFILE_PATH} -t ${dst} .")
                         sh("docker push ${dst}")
                     }
