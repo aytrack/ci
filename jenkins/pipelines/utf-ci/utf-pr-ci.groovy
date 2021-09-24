@@ -43,8 +43,6 @@ def runUTFPy(args) {
     build(job: 'utf-py-build')
     build(job: 'utf-py-test-batch', parameters: [
         string(name: 'EXTRA_ARGS', value: args),
-        string(name: 'CONCURRENCY', value: '3'),
-        booleanParam(name: 'REPORT', value: true),
     ])
 }
 
