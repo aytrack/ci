@@ -25,6 +25,7 @@ def runUTFGo(args) {
     parallel(
         'Group 1': {
             run('clustered_index')
+            run('temporary_table')
         },
         'Group 2': {
             run('ticdc')
