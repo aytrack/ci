@@ -32,7 +32,6 @@ def runUTFGo(args) {
             run('rowformat')
         },
         'Group 3': {
-            run('readpool')
             run('regression')
         },
     )
@@ -41,7 +40,9 @@ def runUTFGo(args) {
 }
 
 def runUTFPy(args) {
-    build(job: 'utf-py-build')
+    build(job: 'utf-py-build', parameters: [
+        string(name: 'BRANCH', value: ${ghprbActualCommit}),
+    ])
     build(job: 'utf-py-batch-test-newest', parameters: [
         string(name: 'EXTRA_ARGS', value: args),
         booleanParam(name: 'REPORT', value: true),
