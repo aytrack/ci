@@ -43,8 +43,10 @@ def runUTFPy(args) {
     build(job: 'utf-py-build', parameters: [
         string(name: 'BRANCH', value: "pr/"+params.ghprbPullId),
     ])
+    tag = "pr-"+params.ghprbPullId)
     build(job: 'utf-py-batch-test-newest', parameters: [
         string(name: 'EXTRA_ARGS', value: args),
+        string(name: 'IMAGE', value: "hub-new.pingcap.net/qa/utf-python:${tag}"),
         booleanParam(name: 'REPORT', value: true),
     ])
 }
