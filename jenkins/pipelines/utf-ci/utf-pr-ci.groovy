@@ -41,7 +41,7 @@ def runUTFGo(args) {
 
 def runUTFPy(args) {
     build(job: 'utf-py-build', parameters: [
-        string(name: 'BRANCH', value: ${sha1}),
+        string(name: 'BRANCH', value: params.sha1),
     ])
     build(job: 'utf-py-batch-test-newest', parameters: [
         string(name: 'EXTRA_ARGS', value: args),
