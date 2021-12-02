@@ -38,7 +38,8 @@ def main(tag, branch) {
             pip install ./framework
             git checkout origin/master
             python -m cases.cli case list --case-meta > test.log
-            git checkout origin/$branch
+            git checkout $branch
+            git rebase origin/$branch
             python -m cases.cli ci one_shot --old-cases test.log
             """)
         }
