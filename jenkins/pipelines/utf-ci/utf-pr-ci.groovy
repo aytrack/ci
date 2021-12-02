@@ -9,12 +9,6 @@ def runUTFGo(args) {
                     string(name: "SUITE", value: suite),
                     string(name: "TAG", value: "alpha1"),
                 ])
-                build(job: 'utf-go-test', parameters: [
-                    string(name: 'SUITE', value: suite),
-                    string(name: "TAG", value: "alpha1"),
-                    string(name: 'EXTRA_ARGS', value: args),
-                    booleanParam(name: 'REPORT', value: true),
-                ])
             } catch (e) {
                 println("Error: $e")
                 ok = false
@@ -22,21 +16,33 @@ def runUTFGo(args) {
         }
     }
 
-    parallel(
-        'Group 1': {
-            run('clustered_index')
-            run('temporary_table')
-        },
-        'Group 2': {
-            run('ticdc')
-            run('rowformat')
-        },
-        'Group 3': {
-            run('regression')
-        },
-    )
-
     assert ok
+}
+
+
+def main(tag, branch) {
+    stage("Checkout") {
+        container("python") { sh("chown -R 1000:1000 ./")}
+        checkout(changelog: false, poll: false, scm: [
+            $class           : "GitSCM",
+            branches         : [[name: branch]],
+            userRemoteConfigs: [[url: "https://github.com/pingcap/automated-tests.git",
+                                 refspec: "+refs/heads/*:refs/remotes/origin/* +refs/pull/*/head:refs/remotes/origin/pr/*", credentialsId: "github-sre-bot"]],
+            extensions       : [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']],
+        ])
+    }
+
+    stage("Test") {
+        container("python") {
+            sh("""
+            pip install ./framework
+            git checkout origin/master
+            python -m cases.cli case list --case-meta > test.log
+            git checkout origin/$branch
+            python -m cases.cli ci one_shot --old-cases test.log
+            """)
+        }
+    }
 }
 
 def runUTFPy(args) {
@@ -44,11 +50,11 @@ def runUTFPy(args) {
         string(name: 'BRANCH', value: "pr/"+params.ghprbPullId),
     ])
     tag = "pr-"+params.ghprbPullId
-    build(job: 'utf-py-batch-test-newest', parameters: [
-        string(name: 'EXTRA_ARGS', value: args),
-        string(name: 'IMAGE', value: "hub-new.pingcap.net/qa/utf-python:${tag}"),
-        booleanParam(name: 'REPORT', value: true),
-    ])
+    // try to create one_shot
+
+    podTemplate(name: "utf-one-shot", label: "utf-one-shot", instanceCap: 5, idleMinutes: 60, containers: [
+        containerTemplate(name: 'python', image: 'hub-new.pingcap.net/chenpeng/python:3.8', alwaysPullImage: true, ttyEnabled: true, command: 'cat'),
+    ]) { node("utf-one-shot") { dir("automated-tests") { main(tag, "pr/"+params.ghprbPullId) } } }
 }
 
 catchError {
@@ -59,3 +65,4 @@ catchError {
         'Run UTF Py': { runUTFPy(args) },
     )
 }
+
