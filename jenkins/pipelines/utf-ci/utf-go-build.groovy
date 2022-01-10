@@ -31,15 +31,20 @@ def main() {
             if [ -f suite.jsonnet ] && ! `grep -q 'std\\.extVar' suite.jsonnet`; then
                 UTF_SUITE_SCHEMA="file://$projectDir/manifests/suite.schema.json" ./${targetName} info
             fi
-            cat <<EOF > Dockerfile
+            if [ -f suite.jsonnet ]; then
+                cat <<EOF > Dockerfile
             FROM hub-new.pingcap.net/qa/utf-go-base:20210413
             COPY *.jsonnet *.libsonnet /
             COPY ${targetName} /
             ENTRYPOINT ["/${targetName}"]
             EOF
-            if [ -f suite.jsonnet ]; then 
                 tar -zcf ${targetName}.tar.gz ${targetName} *.jsonnet \$(find -maxdepth 1 -name '*.libsonnet') Dockerfile
             else
+                cat <<EOF > Dockerfile
+            FROM hub-new.pingcap.net/qa/utf-go-base:20210413
+            COPY ${targetName} /
+            ENTRYPOINT ["/${targetName}"]
+            EOF
                 tar -zcf ${targetName}.tar.gz ${targetName} Dockerfile
             fi
             """.stripIndent())
