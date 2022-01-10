@@ -37,7 +37,11 @@ def main() {
             COPY ${targetName} /
             ENTRYPOINT ["/${targetName}"]
             EOF
-            tar -zcf ${targetName}.tar.gz ${targetName} *.jsonnet \$(find -maxdepth 1 -name '*.libsonnet') Dockerfile
+            if [ -f suite.jsonnet ]; then 
+                tar -zcf ${targetName}.tar.gz ${targetName} *.jsonnet \$(find -maxdepth 1 -name '*.libsonnet') Dockerfile
+            else
+                tar -zcf ${targetName}.tar.gz ${targetName} Dockerfile
+            fi
             """.stripIndent())
 
             archiveArtifacts(artifacts: "ticases/${params.SUITE}/${targetName}.tar.gz")
