@@ -28,7 +28,7 @@ def main() {
             cd ticases/${params.SUITE}
             ${siteScript}
             go build -o ${targetName}
-            if ! `grep -q 'std\\.extVar' suite.jsonnet`; then
+            if [ -f suite.jsonnet ] && ! `grep -q 'std\\.extVar' suite.jsonnet`; then
                 UTF_SUITE_SCHEMA="file://$projectDir/manifests/suite.schema.json" ./${targetName} info
             fi
             cat <<EOF > Dockerfile
