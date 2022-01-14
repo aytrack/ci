@@ -31,7 +31,17 @@ def main() {
             if [ -f suite.jsonnet ] && ! `grep -q 'std\\.extVar' suite.jsonnet`; then
                 UTF_SUITE_SCHEMA="file://$projectDir/manifests/suite.schema.json" ./${targetName} info
             fi
-            if [ -f suite.jsonnet ]; then
+            
+            if [ ${targetName} = "mysqltest" ]; then
+                cat <<EOF > Dockerfile
+            FROM hub-new.pingcap.net/qa/utf-go-base:20210413
+            COPY ${targetName} /
+            COPY t /t
+            COPY r /r
+            ENTRYPOINT ["/${targetName}"]
+            EOF
+                tar -zcf ${targetName}.tar.gz ${targetName} Dockerfile t r
+            elif [ -f suite.jsonnet ]; then
                 cat <<EOF > Dockerfile
             FROM hub-new.pingcap.net/qa/utf-go-base:20210413
             COPY *.jsonnet *.libsonnet /
