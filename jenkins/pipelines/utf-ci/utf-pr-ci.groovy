@@ -40,6 +40,7 @@ def main(tag, branch) {
             python -m cases.cli case list --case-meta > test.log
             git checkout $branch
             git rebase origin/$branch
+            export TCMS_TOKEN=tcmsp_rUiTOX6q6pTF03q8wqfO
             python -m cases.cli ci one_shot --old-cases test.log
             """)
         }
