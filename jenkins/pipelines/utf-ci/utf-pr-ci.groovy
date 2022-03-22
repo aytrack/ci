@@ -20,7 +20,7 @@ def runUTFGo(args) {
 }
 
 
-def main(tag, branch) {
+def main(tag, branch, pr) {
     stage("Checkout") {
         container("python") { sh("chown -R 1000:1000 ./")}
         checkout(changelog: false, poll: false, scm: [
@@ -34,15 +34,18 @@ def main(tag, branch) {
 
     stage("Test") {
         container("python") {
-            sh("""
-            pip install ./framework
-            git checkout origin/master
-            python -m cases.cli case list --case-meta > test.log
-            git checkout $branch
-            git rebase origin/$branch
-            export TCMS_TOKEN=tcmsp_rUiTOX6q6pTF03q8wqfO
-            python -m cases.cli ci one_shot --old-cases test.log
-            """)
+            withCredentials([string(credentialsId: "sre-bot-token", variable: 'GITHUB_TOKEN')]) {
+                sh("""
+                pip install ./framework
+                git checkout origin/master
+                python -m cases.cli case list --case-meta > test.log
+                git checkout $branch
+                git rebase origin/$branch
+                export TCMS_TOKEN=tcmsp_rUiTOX6q6pTF03q8wqfO
+                python -m cases.cli ci one_shot --old-cases test.log
+                bash /root/run.sh $pr
+                """)
+            }
         }
     }
 }
@@ -56,7 +59,7 @@ def runUTFPy(args) {
 
     podTemplate(name: "utf-one-shot", label: "utf-one-shot", instanceCap: 5, idleMinutes: 60, containers: [
         containerTemplate(name: 'python', image: 'hub-new.pingcap.net/chenpeng/python:3.8', alwaysPullImage: true, ttyEnabled: true, command: 'cat'),
-    ]) { node("utf-one-shot") { dir("automated-tests") { main(tag, "pr/"+params.ghprbPullId) } } }
+    ]) { node("utf-one-shot") { dir("automated-tests") { main(tag, "pr/"+params.ghprbPullId, params.ghprbPullId) } } }
 }
 
 catchError {
