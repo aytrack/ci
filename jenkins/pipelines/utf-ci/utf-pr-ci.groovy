@@ -34,14 +34,13 @@ def main(tag, branch, pr) {
 
     stage("Test") {
         container("python") {
-            withCredentials([string(credentialsId: "sre-bot-token", variable: 'GITHUB_TOKEN')]) {
+            withCredentials([string(credentialsId: "sre-bot-token", variable: 'GITHUB_TOKEN'), string(credentialsId: "cp-tcms-token", variable: 'TCMS_TOKEN'), string(credentialsId: "cp-jira-pwd", variable: 'JIRA_PASSWORD')]) {
                 sh("""
                 pip install ./framework
                 git checkout origin/master
                 python -m cases.cli case list --case-meta > test.log
                 git checkout $branch
                 git rebase origin/$branch
-                export TCMS_TOKEN=tcmsp_rUiTOX6q6pTF03q8wqfO
                 bash /root/run.sh $pr
                 """)
             }
