@@ -1,0 +1,5 @@
+click==8.1.2
+jenkins==1.0.2
+jira==3.1.1
+PyYAML==6.0
+requests==2.27.1
