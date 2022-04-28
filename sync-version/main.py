@@ -10,6 +10,7 @@ import yaml
 
 
 g_trigger_id = ""
+g_trigger_type = ""
 
 
 @click.group()
@@ -19,9 +20,12 @@ def main():
 
 @main.group("sync", help="sync tcms results")
 @click.option("--trigger-id", help="tcms trigger id")
+@click.option("--trigger-type", help="branch or version")
 def sync(**params):
     global g_trigger_id
+    global g_trigger_type
     g_trigger_id = params.get("trigger_id")
+    g_trigger_type = params.get("trigger_type")
 
 
 def sort(versions):
@@ -31,35 +35,6 @@ def sort(versions):
             v = Version(versions[i]["version"])
             if not v.less(Version(versions[j]["version"])):
                 versions[i], versions[j] = versions[j], versions[i]
-
-
-@sync.command("github", help="sync tcms results to github")
-def sync_to_github(**params):
-    tidb_github = Github(Config.github_token, "pingcap", "tidb")
-
-    cases = sync_branch_cases(g_trigger_id)
-    message = []
-    for c in cases:
-        if not TiBug.github_issues_is_valid(c.issue_link):
-            message.append("[{}]({}) github issue field is invalid".format(c.case_name, c.tibug_link))
-            continue
-        if c.issue_link == "empty":
-            message.append("[{}]({}) github issue field is empty".format(c.case_name, c.tibug_link))
-            continue
-
-        # just add a comment
-        c.add_labels.sort()
-        c.exist_labels.sort()
-        message.append("{} issue {} exists {} will add labels {}".format(c.case_name, c.issue_number, c.exist_labels, c.add_labels))
-
-        if Config.update_all or c.issue_number() in Config.allow_id:
-            # add labels to tidb issue
-            tidb_github.add_labels(c.issue_number(), c.add_labels)
-            # send a lark message
-            print("{} add new {}".format(c.case_name, c.add_labels))
-            continue
-
-        print("{} the github issues should have {}".format(c.case_name, c.add_labels))
 
 
 def sync_branch_cases(trigger_id):
@@ -72,7 +47,7 @@ def sync_branch_cases(trigger_id):
         case_versions = item["versions"]
         print(case_name)
         if not case_name.startswith("TIBUG-") and not case_name.startswith("GH-TIDB-"):
-            print("{} unsupported".format(case_name))
+            print("{} don't support affect-branch".format(case_name))
             continue
 
         affect_labels = []
@@ -110,19 +85,64 @@ def sync_branch_cases(trigger_id):
         c.exist_labels = exist_labels
         c.add_labels = add_labels
         c.issue_link = tidb_github.link(issue_number)
+        c.add_labels.sort()
+        c.exist_labels.sort()
         cases.append(c)
 
     return cases
 
 
+@sync.command("github", help="sync tcms results to github")
+def sync_to_github(**params):
+    tidb_github = Github(Config.github_token, "pingcap", "tidb")
+
+    cases = sync_branch_cases(g_trigger_id)
+    message = []
+    for c in cases:
+        if len(c.add_labels) == 0:
+            continue
+
+        if c.issue_number():
+            # add labels to tidb issue
+            tidb_github.add_labels(c.issue_number(), c.add_labels)
+            message.append(c.affect_branch_rich_message("done"))
+
+    if len(message) == 0:
+        return
+
+    Lark.send("issue affect branch", message)
+
+
 @sync.command("tibug", help="sync tcms results to tibug")
 def sync_to_tibug(**params):
-    # sync tcms results to tibug
-    all_count = 0
-    success_count = 0
+    cases = sync_version_cases(g_trigger_id)
+    message = []
     tibug = TiBug(Config.user, Config.pwd)
-    for item in Tcms().case_versions(g_trigger_id):
+    for c in cases:
+        if len(c.tibug_add_affects_labels()) == 0 and len(c.tibug_delete_affects_labels()) == 0 and \
+                len(c.tibug_add_fix_labels()) == 0 and len(c.tibug_delete_fix_labels()) == 0:
+            continue
+
+        if tibug.update_tibug_values(c.case_name, c.new_affects_labels, c.new_fix_versions):
+            message.append(c.affect_version_message("done"))
+        else:
+            message.append(c.affect_version_message("done") + ", update failed")
+
+    if len(message) == 0:
+        return
+
+    Lark.send("tibug affect version", message)
+
+
+def sync_version_cases(trigger_id):
+    tibug = TiBug(Config.user, Config.pwd)
+    cases = []
+    for item in Tcms().case_versions(trigger_id):
         case_name = item["name"]
+        if not case_name.startswith("TIBUG-"):
+            print("{} don't support affect-version".format(case_name))
+            continue
+
         case_versions = item["versions"]
         new_version = []
         for k in case_versions:
@@ -166,64 +186,73 @@ def sync_to_tibug(**params):
                 if cv.is_branch():
                     fix_version.append({"name": k["version"]})
                     continue
+        c = Case()
+        c.case_name = case_name
+        c.tibug_link = tibug.link(case_name)
+        c.exist_fix_versions = tibug.fix_version(case_name)
+        c.exist_affects_labels = tibug.affect_version(case_name)
+        c.new_fix_versions = fix_version
+        c.new_affects_labels = failed_version
+        cases.append(c)
 
-        all_count = all_count + 1
-        if tibug.update_tibug_values(case_name, failed_version, fix_version):
-            success_count = success_count + 1
-
-    if success_count == all_count:
-        print("update total {} cases success".format(all_count))
-        exit(0)
-    print("total {} cases, update {} failure, please check the output and fix it".format(all_count, all_count - success_count))
-    exit(1)
+    return cases
 
 
 @sync.command("pr", help="add comment to pr")
 @click.option("--pr-id", help="utf pr id")
 def pr_comment(**params):
     pr_id = params.get("pr_id")
-    cases = sync_branch_cases(g_trigger_id)
-
-    message = []
-    for c in cases:
-        if not TiBug.github_issues_is_valid(c.issue_link):
-            message.append("[{}]({}) github issue field is invalid".format(c.case_name, c.tibug_link))
-            continue
-        if c.issue_link == "empty":
-            message.append("[{}]({}) github issue field is empty".format(c.case_name, c.tibug_link))
-            continue
-
-        # just add a comment
-        c.add_labels.sort()
-        c.exist_labels.sort()
-        message.append("{} issue {} exists {} will add labels {}".format(c.case_name, c.issue_number(), c.exist_labels, c.add_labels))
 
     utf_github = Github(Config.github_token, "pingcap", "automated-tests")
+    if g_trigger_type == "branch":
+        cases = sync_branch_cases(g_trigger_id)
+
+        message = []
+        for c in cases:
+            message.append(c.affect_branch_message("todo"))
+        if len(message) == 0:
+            return
+        utf_github.add_comment(pr_id, "\n".join(message))
+        return
+
+    # g_trigger_type == "version"
+    cases = sync_version_cases(g_trigger_id)
+    message = []
+    for c in cases:
+        message.append(c.affect_version_message("todo"))
+    if len(message) == 0:
+        return
     utf_github.add_comment(pr_id, "\n".join(message))
+    return
 
 
 @sync.command("lark", help="sync tcms results to pr and add comment")
-@click.option("--pr-id", help="utf pr id")
-def pr_comment(**params):
-    pr_id = params.get("pr_id")
-    cases = sync_branch_cases(g_trigger_id)
+def lark_message(**params):
+    if g_trigger_type == "branch":
+        cases = sync_branch_cases(g_trigger_id)
 
+        message = []
+        for c in cases:
+            if len(c.add_labels) == 0:
+                continue
+            message.append(c.affect_branch_rich_message("todo"))
+        if len(message) == 0:
+            return
+        Lark.send("issue affect branch", message)
+        return
+
+    # g_tigger_type == "version"
+    cases = sync_version_cases(g_trigger_id)
     message = []
     for c in cases:
-        if not TiBug.github_issues_is_valid(c.issue_link):
-            message.append("[{}]({}) github issue field is invalid".format(c.case_name, c.tibug_link))
+        if len(c.tibug_add_affects_labels()) == 0 and len(c.tibug_delete_affects_labels()) == 0 and \
+                len(c.tibug_add_fix_labels()) == 0 and len(c.tibug_delete_fix_labels()) == 0:
             continue
-        if c.issue_link == "empty":
-            message.append("[{}]({}) github issue field is empty".format(c.case_name, c.tibug_link))
-            continue
+        message.append(c.affect_version_message("todo"))
 
-        # just add a comment
-        c.add_labels.sort()
-        c.exist_labels.sort()
-        message.append("{} issue {} exists {} will add labels {}".format(c.case_name, c.issue_number, c.exist_labels, c.add_labels))
-
-    utf_github = Github(Config.github_token, "pingcap", "automated-tests")
-    utf_github.add_comment(pr_id, "\n".join(message))
+    if len(message) == 0:
+        return
+    Lark.send("tibug affect version", message)
 
 
 @main.group("check", help="check fields")
@@ -245,7 +274,7 @@ def tibug(**params):
         case_names.append(item["caseName"])
 
     tibug = TiBug(Config.user, Config.pwd)
-    elements = []
+    messages = []
     for name in case_names:
         if not name.startswith("TIBUG-"):
             print("{} is not a TIBUG".format(name))
@@ -254,43 +283,13 @@ def tibug(**params):
         if tibug.github_issues_is_valid(link):
             print("{} github issue is valid".format(name))
             continue
+        messages.append("[%s](%s)".format(name, TiBug.link(name)))
 
-        if len(elements) != 0:
-            elements.append("""{"tag": "hr" }""")
-        elements.append('''{
-      "tag": "div",
-      "fields": [
-        {
-          "is_short": false,
-          "text": {
-            "tag": "lark_md",
-            "content": "[%s](%s)"
-          }
-        }
-      ]
-    }''' % (name, TiBug.link(name)))
-
-    if len(elements) == 0:
+    if len(messages) == 0:
         print("all tibug check passed")
         exit(0)
 
-    Lark.send_message("""
-{
-    "msg_type": "interactive",
-    "card": {
-        "config": {
-                "wide_screen_mode": true,
-                "enable_forward": true
-        },
-        "elements": [%s],
-        "header": {
-                "title": {
-                        "content": "tibug github issue field is invalid",
-                        "tag": "plain_text"
-                }
-        }
-    }
-} """ % (",".join(elements)))
+    Lark.send("github issue field is invalid", messages)
 
 
 if __name__ == '__main__':

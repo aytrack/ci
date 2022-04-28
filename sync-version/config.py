@@ -13,10 +13,6 @@ class Config:
 
     # for github
     github_token = os.getenv("GITHUB_TOKEN")
-    # update all cases
-    update_all = False
-    # some cases need to add label
-    allow_id = []
 
 
 

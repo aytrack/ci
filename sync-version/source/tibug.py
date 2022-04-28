@@ -25,7 +25,7 @@ class TiBug(object):
             update_count = update_count + 1
 
         try:
-            issue.update(fields={Config.fix_version_field: fix_version})
+            issue.update(fields={"fixVersions": fix_version})
         except Exception as err:
             print("update {} fix version fail {}".format(case_name, err))
         else:
@@ -59,3 +59,21 @@ class TiBug(object):
     @staticmethod
     def link(case_name):
         return "https://internal.pingcap.net/jira/browse/" + case_name
+
+    def fix_version(self, case_name):
+        issue = self.tibug_jira.issue(case_name)
+        ls = []
+        if issue.fields.fixVersions is None:
+            return ls
+        for item in issue.fields.fixVersions:
+            ls.append(item.name)
+        return ls
+
+    def affect_version(self, case_name):
+        issue = self.tibug_jira.issue(case_name)
+        ls = []
+        if issue.fields.versions is None:
+            return ls
+        for item in issue.fields.versions:
+            ls.append(item.name)
+        return ls
