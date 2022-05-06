@@ -23,31 +23,26 @@ set -e
 
 if [ $CODE == 0 ]; then
   # github issue cases
-  LINK=$(/root/tcctl run --token $TCMS_TOKEN -m /root/release -f $FILENAME 2>&1)
+  LINK=$(/root/tcctl run --token $TCMS_TOKEN -m /home/jenkins/agent/workspace/test-plan/compute/release -f $FILENAME 2>&1)
   LINK=${LINK%%) will run later*}
   TRIGGERID=${LINK##*ID=}
-  cd /root/sync-version/
-  export PRID=$1
-  python main.py sync --trigger-id $TRIGGERID --trigger-type branch pr --pr-id $PRID
+  python /root/sync-version/main.py sync --trigger-id $TRIGGERID --trigger-type branch pr --pr-id $PRID
+
+  set +e
+  grep caseName $FILENAME | grep "TIBUG-"
+  CODE=$?
+  set -e
+  if [ $CODE == 0 ]; then
+    # tibug cases
+    LINK=$(/root/tcctl run --token $TCMS_TOKEN -m /home/jenkins/agent/workspace/test-plan/compute/affected-versions -f $FILENAME 2>&1)
+    LINK=${LINK%%) will run later*}
+    TRIGGERID=${LINK##*ID=}
+    python /root/sync-version/main.py sync --trigger-id $TRIGGERID --trigger-type version pr --pr-id $PRID
+  fi
   exit 0
 fi
 
-set +e
-grep caseName $FILENAME | grep "TIBUG-"
-CODE=$?
-set -e
-
-if [ $CODE == 0 ]; then
-  # tibug cases
-  LINK=$(/root/tcctl run --token $TCMS_TOKEN -m /root/affected-versions -f $FILENAME 2>&1)
-  LINK=${LINK%%) will run later*}
-  TRIGGERID=${LINK##*ID=}
-  cd /root/sync-version/
-  python main.py sync --trigger-id $TRIGGERID --trigger-type version pr --pr-id $PRID
-  exit 0
-fi
-
-LINK=$(/root/tcctl run --token $TCMS_TOKEN -m /root/meta.yaml -f $FILENAME 2>&1)
+LINK=$(/root/tcctl run --token $TCMS_TOKEN -m /home/jenkins/agent/workspace/test-plan/compute/meta.yaml -f $FILENAME 2>&1)
 LINK=${LINK%% to open*}
 LINK=${LINK##*click}
 ID=${LINK##*plan/}

@@ -21,7 +21,7 @@ def runUTFGo(args) {
 
 
 def main(tag, branch, pr) {
-    stage("Checkout") {
+    stage("Checkout-automated-tests") {
         container("python") { sh("chown -R 1000:1000 ./")}
         checkout(changelog: false, poll: false, scm: [
             $class           : "GitSCM",
@@ -31,12 +31,32 @@ def main(tag, branch, pr) {
             extensions       : [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']],
         ])
     }
+    stage("Checkout-test-plan") {
+        checkout(
+            changelog: false,
+            poll: true,
+            scm: [
+                $class           : 'GitSCM',
+                branches         : [[name: 'main']],
+                extensions       : [[$class: 'PruneStaleBranch'],
+                                    [$class: 'CleanBeforeCheckout'],
+                                    [$class: 'RelativeTargetDirectory', relativeTargetDir: '/home/jenkins/agent/workspace/test-plan/'],
+                                    [$class: 'UserIdentity', email: 'sre-bot@pingcap.com', name: 'sre-bot']],
+                userRemoteConfigs: [[credentialsId: 'github-sre-bot',
+                                    refspec: "+refs/heads/main:refs/remotes/origin/main",
+                                    url: 'https://github.com/pingcap/test-plan.git']],
+            ]
+        )
+    }
 
     stage("Test") {
         container("python") {
             withCredentials([string(credentialsId: "sre-bot-token", variable: 'GITHUB_TOKEN'), string(credentialsId: "cp-tcms-token", variable: 'TCMS_TOKEN'), string(credentialsId: "cp-jira-pwd", variable: 'JIRA_PASSWORD')]) {
                 sh("""
                 pip install ./framework
+                apt-get update
+                apt-get install -y python-dev libsasl2-dev gcc
+                pip install -r requirements.txt
                 git checkout origin/master
                 python -m cases.cli case list --case-meta > test.log
                 git checkout $branch
@@ -56,7 +76,7 @@ def runUTFPy(args) {
     // try to create one_shot
 
     podTemplate(name: "utf-one-shot", label: "utf-one-shot", instanceCap: 5, idleMinutes: 60, containers: [
-        containerTemplate(name: 'python', image: 'hub-new.pingcap.net/chenpeng/python:3.8', alwaysPullImage: true, ttyEnabled: true, command: 'cat'),
+        containerTemplate(name: 'python', image: 'hub-new.pingcap.net/chenpeng/sync-version:latest', alwaysPullImage: true, ttyEnabled: true, command: 'cat'),
     ]) { node("utf-one-shot") { dir("automated-tests") { main(tag, "pr/"+params.ghprbPullId, params.ghprbPullId) } } }
 }
 
