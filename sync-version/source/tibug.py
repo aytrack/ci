@@ -17,7 +17,10 @@ class TiBug(object):
         issue = self.tibug_jira.issue(case_name)
         update_count = 0
         try:
-            issue.update(fields={"versions": failed_version})
+            fv = []
+            for item in failed_version:
+                fv.append({"name": item})
+            issue.update(fields={"versions": fv})
         except Exception as err:
             print("update {} affect version fail {}".format(case_name, err))
         else:
@@ -25,7 +28,10 @@ class TiBug(object):
             update_count = update_count + 1
 
         try:
-            issue.update(fields={"fixVersions": fix_version})
+            fv = []
+            for item in fix_version:
+                fv.append({"name": item})
+            issue.update(fields={"fixVersions": fv})
         except Exception as err:
             print("update {} fix version fail {}".format(case_name, err))
         else:

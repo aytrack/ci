@@ -17,8 +17,8 @@ class Case(object):
         self.add_labels = add_labels
 
         # tibug affect version
-        self.exist_affects_labels = []
-        self.new_affects_labels = []
+        self.exist_affects_versions = []
+        self.new_affects_versions = []
         self.exist_fix_versions = []
         self.new_fix_versions = []
 
@@ -30,16 +30,16 @@ class Case(object):
 
     def tibug_add_affects_labels(self):
         ls = []
-        for item in self.new_affects_labels:
-            if item not in self.exist_affects_labels:
+        for item in self.new_affects_versions:
+            if item not in self.exist_affects_versions:
                 ls.append(item)
         ls.sort()
         return ls
 
     def tibug_delete_affects_labels(self):
         ls = []
-        for item in self.exist_affects_labels:
-            if item not in self.new_affects_labels:
+        for item in self.exist_affects_versions:
+            if item not in self.new_affects_versions:
                 ls.append(item)
         ls.sort()
         return ls
@@ -60,34 +60,50 @@ class Case(object):
         ls.sort()
         return ls
 
-    def affect_branch_message(self, status):
-        if not TiBug.github_issues_is_valid(self.issue_link):
-            return "[{}]({}) github issue field is invalid".format(self.case_name, self.tibug_link)
+    def is_tibug(self):
+        return self.case_name.startswith("TIBUG-")
 
-        if self.issue_link == "empty":
-            return "[{}]({}) github issue field is empty".format(self.case_name, self.tibug_link)
+    def affect_branch_message(self, status):
+        if self.is_tibug():
+            if not TiBug.github_issues_is_valid(self.issue_link):
+                return "[{}]({}) github issue field is invalid".format(self.case_name, self.tibug_link)
+            
+            if self.issue_link == "empty":
+                return "[{}]({}) github issue field is empty".format(self.case_name, self.tibug_link)
+            
+            if status == "todo":
+                return "[{}]({}) issue {} exists {} will add labels {}".format(self.case_name, self.tibug_link, self.issue_number(), self.exist_labels, self.add_labels)
+            if status == "done":
+                return "[{}]({}) issue {} exists {} added labels {}".format(self.case_name, self.tibug_link, self.issue_number(), self.exist_labels, self.add_labels)
 
         if status == "todo":
-            return "[{}]({}) issue {} exists {} will add labels {}".format(self.case_name, self.tibug_link, self.issue_number(), self.exist_labels, self.add_labels)
+            return "{} exists {} will add labels {}".format(self.case_name, self.exist_labels, self.add_labels)
         if status == "done":
-            return "[{}]({}) issue {} exists {} added labels {}".format(self.case_name, self.tibug_link, self.issue_number(), self.exist_labels, self.add_labels)
-        raise Exception(status)
+            return "{} exists {} added labels {}".format(self.case_name, self.exist_labels, self.add_labels)
 
     def affect_branch_rich_message(self, status):
-        if not TiBug.github_issues_is_valid(self.issue_link):
-            return "[{}]({}) github issue field is invalid".format(self.case_name, self.tibug_link)
-
-        if self.issue_link == "empty":
-            return "[{}]({}) github issue field is empty".format(self.case_name, self.tibug_link)
+        if self.is_tibug():
+            if not TiBug.github_issues_is_valid(self.issue_link):
+                return "[{}]({}) github issue field is invalid".format(self.case_name, self.tibug_link)
+            
+            if self.issue_link == "empty":
+                return "[{}]({}) github issue field is empty".format(self.case_name, self.tibug_link)
+            
+            if status == "todo":
+                return "[{}]({}) issue [{}]({}) exists {} will add labels {}".format(self.case_name, self.tibug_link, self.issue_number(), self.issue_link, self.exist_labels, self.add_labels)
+            if status == "done":
+                return "[{}]({}) issue [{}]({}) exists {} added labels {}".format(self.case_name, self.tibug_link, self.issue_number(), self.issue_link, self.exist_labels, self.add_labels)
 
         if status == "todo":
-            return "[{}]({}) issue [{}]({}) exists {} will add labels {}".format(self.case_name, self.tibug_link, self.issue_number(), self.issue_link, self.exist_labels, self.add_labels)
+            return "[{}]({}) exists {} will add labels {}".format(self.case_name, self.issue_link, self.exist_labels, self.add_labels)
         if status == "done":
-            return "[{}]({}) issue [{}]({}) exists {} added labels {}".format(self.case_name, self.tibug_link, self.issue_number(), self.issue_link, self.exist_labels, self.add_labels)
-        raise Exception(status)
+            return "[{}]({}) exists {} added labels {}".format(self.case_name, self.issue_link, self.exist_labels, self.add_labels)
 
     def affect_version_message(self, status):
         m = "[{}]({}) ".format(self.case_name, self.tibug_link)
+        if len(self.tibug_add_affects_labels()) == 0 and len(self.tibug_delete_affects_labels()) == 0 and \
+                len(self.tibug_add_fix_labels()) == 0 and len(self.tibug_delete_fix_labels()) == 0:
+            return m + " do nothing"
 
         todo = "will"
         add_name = "add"
@@ -117,3 +133,5 @@ class Case(object):
             else:
                 m += " and "
             m += "{} {} ".format(delete_name, self.tibug_delete_fix_labels())
+
+        return m

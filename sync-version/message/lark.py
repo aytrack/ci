@@ -40,7 +40,7 @@ class Lark(object):
                         }
                 }
             }
-        } """ % (head, ",".join(elements))
+        } """ % (",".join(elements), head)
 
         print(data)
         res = requests.post("https://open.feishu.cn/open-apis/bot/v2/hook/00e93570-c21a-464a-a0b9-6a708eb5d6cc", data=data,

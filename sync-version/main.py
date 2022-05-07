@@ -42,7 +42,7 @@ def sync_branch_cases(trigger_id):
     tibug = TiBug(Config.user, Config.pwd)
 
     cases = []
-    for item in Tcms().case_versions(trigger_id):
+    for item in Tcms(Config.tcms_token).case_versions(trigger_id):
         case_name = item["name"]
         case_versions = item["versions"]
         print(case_name)
@@ -123,7 +123,7 @@ def sync_to_tibug(**params):
                 len(c.tibug_add_fix_labels()) == 0 and len(c.tibug_delete_fix_labels()) == 0:
             continue
 
-        if tibug.update_tibug_values(c.case_name, c.new_affects_labels, c.new_fix_versions):
+        if tibug.update_tibug_values(c.case_name, c.new_affects_versions, c.new_fix_versions):
             message.append(c.affect_version_message("done"))
         else:
             message.append(c.affect_version_message("done") + ", update failed")
@@ -137,7 +137,7 @@ def sync_to_tibug(**params):
 def sync_version_cases(trigger_id):
     tibug = TiBug(Config.user, Config.pwd)
     cases = []
-    for item in Tcms().case_versions(trigger_id):
+    for item in Tcms(Config.tcms_token).case_versions(trigger_id):
         case_name = item["name"]
         if not case_name.startswith("TIBUG-"):
             print("{} don't support affect-version".format(case_name))
@@ -171,7 +171,7 @@ def sync_version_cases(trigger_id):
             # all failed case's version is affect-version
             if k["status"].lower() == "failure":
                 pre_failed_version = k["version"]
-                failed_version.append({"name": k["version"]})
+                failed_version.append(k["version"])
                 continue
 
             if k["status"].lower() == "success":
@@ -179,20 +179,20 @@ def sync_version_cases(trigger_id):
                     continue
                 # case passed in the version and case failed in previous branch
                 if cv.is_adjacent(Version(pre_failed_version)):
-                    fix_version.append({"name": k["version"]})
+                    fix_version.append(k["version"])
                     continue
 
                 # case passed in new branch and case failed in previous branch
                 if cv.is_branch():
-                    fix_version.append({"name": k["version"]})
+                    fix_version.append(k["version"])
                     continue
         c = Case()
         c.case_name = case_name
         c.tibug_link = tibug.link(case_name)
         c.exist_fix_versions = tibug.fix_version(case_name)
-        c.exist_affects_labels = tibug.affect_version(case_name)
+        c.exist_affects_versions = tibug.affect_version(case_name)
         c.new_fix_versions = fix_version
-        c.new_affects_labels = failed_version
+        c.new_affects_versions = failed_version
         cases.append(c)
 
     return cases
