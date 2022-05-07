@@ -18,9 +18,10 @@ def main() {
 
     stage("Test") {
         container("python") {
-            withCredentials([string(credentialsId: "cp-jira-pwd", variable: 'JIRA_PASSWORD')]) {
+            withCredentials([string(credentialsId: "cp-jira-pwd", variable: 'JIRA_PASSWORD'),string(credentialsId: "cp-github-token", variable: 'GITHUB_TOKEN'),]) {
                 sh("""
                 python /root/sync-version/main.py check tibug --yaml-file compute/sqlfeature/utf-affectversion-auto.yaml
+                python /root/sync-version/main.py check yaml --dir compute/affected-versions --type version
                 """)
             }
         }
