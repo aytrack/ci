@@ -22,6 +22,10 @@ class TestGithub(unittest.TestCase):
         g = Github("token", "ChenPeng2013", "awesome")
         g.add_comment(1, "test add label")
 
+    def test_get_release_tag(self):
+        g = Github("token", "pingcap", "tidb")
+        g.get_release_tag()
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -54,7 +54,6 @@ class Tcms(object):
 
             done = True
             for item in res.json()["data"]:
-                print(item["status"])
                 if item["status"].lower() not in ["failure", "success", "error", "cancelled"]:
                     done = False
                     break

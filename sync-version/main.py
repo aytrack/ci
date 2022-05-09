@@ -5,6 +5,7 @@ from source.tcms import Tcms
 from source.github import Github
 from case import Case
 from message.lark import Lark
+from os import walk
 import click
 import yaml
 
@@ -258,6 +259,38 @@ def lark_message(**params):
 @main.group("check", help="check fields")
 def check(**params):
     pass
+
+
+@check.command("yaml", help="check yaml name")
+@click.option("--dir", help="yaml dir")
+@click.option("--type", help="branch or version")
+def version_yaml(**params):
+    dir = params.get("dir")
+    if dir is None:
+        raise Exception("please set dir")
+    t = params.get("type")
+    if t is None:
+        raise Exception("please set type")
+
+    f = []
+    for (dirpath, dirnames, filenames) in walk(dir):
+        f.extend(filenames)
+        break
+
+    tags = Github(Config.github_token, "pingcap", "tidb").get_release_tag()
+    if t == "version":
+        new_f = []
+        for item in tags:
+            if item + ".yaml" not in f:
+                new_f.append(item + ".yaml")
+        if len(new_f) != 0:
+            Lark.send("test-plan should add new yaml", new_f)
+        return
+
+    if t == "branch":
+        pass
+
+    raise Exception("unknown {}".format(t))
 
 
 @check.command("tibug", help="check tibug in yaml")

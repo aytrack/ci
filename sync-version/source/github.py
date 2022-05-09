@@ -71,3 +71,18 @@ class Github(object):
 
     def link(self, issue_number):
         return "https://github.com/{}/{}/issues/{}".format(self.owner, self.repo, issue_number)
+
+    def get_release_tag(self):
+        res = requests.get(
+            "https://api.github.com/repos/{}/{}/releases".format(self.owner, self.repo),
+            headers={"Authorization": "token {}".format(self.token)})
+        if res.status_code != 200:
+            raise Exception("unknown", res.status_code)
+
+        vs = []
+        for item in res.json():
+            tag_name = item["tag_name"]
+            if tag_name.count("-") != 0 or tag_name.count(".") != 2 or not tag_name.startswith("v"):
+                continue
+            vs.append(tag_name)
+        return vs
