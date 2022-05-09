@@ -26,6 +26,10 @@ class TestGithub(unittest.TestCase):
         g = Github("token", "pingcap", "tidb")
         g.get_release_tag()
 
+    def test_list_issue_timeline(self):
+        g = Github("token", "pingcap", "tidb")
+        g.list_last_update_issues(1)
+
 
 if __name__ == "__main__":
     unittest.main()

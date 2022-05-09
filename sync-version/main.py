@@ -122,6 +122,7 @@ def sync_to_tibug(**params):
     for c in cases:
         if len(c.tibug_add_affects_labels()) == 0 and len(c.tibug_delete_affects_labels()) == 0 and \
                 len(c.tibug_add_fix_labels()) == 0 and len(c.tibug_delete_fix_labels()) == 0:
+            # don't need to update tibug affect version
             continue
 
         if tibug.update_tibug_values(c.case_name, c.new_affects_versions, c.new_fix_versions):
@@ -291,6 +292,29 @@ def version_yaml(**params):
         pass
 
     raise Exception("unknown {}".format(t))
+
+
+@check.command("github", help="sync label change")
+@click.option("--days", help="days")
+def check_github(**params):
+    days = params.get("days", 1)
+    gh = Github(Config.github_token, "pingcap", "tidb")
+    uis = gh.list_last_update_issues(days)
+    m = []
+    for item in uis:
+        issue_number = item["issue_number"]
+        add_labels = item["add_labels"]
+        delete_labels = item["delete_labels"]
+
+        tm = []
+        if len(add_labels) != 0:
+            tm.append("add branch label {}".format(add_labels))
+        if len(delete_labels) != 0:
+            tm.append("delete branch label {}".format(delete_labels))
+        if len(tm) != 0:
+            m.append("[{}]({}) {}".format(issue_number, gh.link(issue_number), ",".join(tm)))
+    if len(m) != 0:
+        Lark().send("github label change in last {} days".format(days), m)
 
 
 @check.command("tibug", help="check tibug in yaml")

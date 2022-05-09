@@ -22,6 +22,7 @@ def main() {
                 sh("""
                 python /root/sync-version/main.py check tibug --yaml-file compute/sqlfeature/utf-affectversion-auto.yaml
                 python /root/sync-version/main.py check yaml --dir compute/affected-versions --type version
+                python /root/sync-version/main.py check github --days 1
                 """)
             }
         }
