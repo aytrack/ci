@@ -18,9 +18,9 @@ def main() {
 
     stage("Test") {
         container("python") {
-            withCredentials([string(credentialsId: "cp-jira-pwd", variable: 'JIRA_PASSWORD')]) {
+            withCredentials([string(credentialsId: "cp-github-token", variable: 'GITHUB_TOKEN'), string(credentialsId: "cp-tcms-token", variable: 'TCMS_TOKEN'), string(credentialsId: "cp-jira-pwd", variable: 'JIRA_PASSWORD')]) {
                 sh("""
-                echo done
+                bash /root/affect_update.sh
                 """)
             }
         }
@@ -29,10 +29,10 @@ def main() {
 
 def run(label, image, Closure main) {
     podTemplate(name: label, label: label, instanceCap: 5, idleMinutes: 60, containers: [
-        containerTemplate(name: 'python', image: image, alwaysPullImage: false, ttyEnabled: true, command: 'cat'),
+        containerTemplate(name: 'python', image: image, alwaysPullImage: true, ttyEnabled: true, command: 'cat'),
     ]) { node(label) { dir("test-plan") { main() } } }
 }
 
 catchError {
-    run('utf-jira-field', 'hub-new.pingcap.net/chenpeng/sync-version:latest') { main() }
+    run('utf-affect-update', 'hub-new.pingcap.net/chenpeng/sync-version:latest') { main() }
 }
