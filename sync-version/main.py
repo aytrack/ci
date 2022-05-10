@@ -46,7 +46,6 @@ def sync_branch_cases(trigger_id):
     for item in Tcms(Config.tcms_token).case_versions(trigger_id):
         case_name = item["name"]
         case_versions = item["versions"]
-        print(case_name)
         if not case_name.startswith("TIBUG-") and not case_name.startswith("GH-TIDB-"):
             print("{} don't support affect-branch".format(case_name))
             continue
@@ -57,9 +56,8 @@ def sync_branch_cases(trigger_id):
             if k["version"] == "main":
                 continue
             if k["status"].lower() == "failure":
-                v = Version(k["version"])
-                b = v.branch()
-                affect_labels.append("affects-{}".format(b))
+                v = k["version"][len("release-"):]
+                affect_labels.append("affects-{}".format(v))
 
         c = Case()
         c.case_name = case_name
