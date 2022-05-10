@@ -289,7 +289,15 @@ def version_yaml(**params):
         return
 
     if t == "branch":
-        pass
+        new_f = []
+        for item in tags:
+            v = Version(item)
+            b = v.branch()
+            if "release-{}.yaml".format(b) not in f:
+                new_f.append("release-{}.yaml".format(b))
+        if len(new_f) != 0:
+            Lark.send("test-plan should add new yaml", new_f)
+        return
 
     raise Exception("unknown {}".format(t))
 
