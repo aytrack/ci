@@ -25,7 +25,8 @@ class Case(object):
     def issue_number(self):
         if self.issue_link is None:
             return self.issue_link
-
+        if self.issue_link == "empty":
+            return None
         return self.issue_link.split("/")[-1]
 
     def tibug_add_affects_labels(self):

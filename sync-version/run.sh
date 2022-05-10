@@ -42,7 +42,7 @@ if [ $CODE == 0 ]; then
   exit 0
 fi
 
-LINK=$(/root/tcctl run --token $TCMS_TOKEN -m /home/jenkins/agent/workspace/test-plan/compute/meta.yaml -f $FILENAME 2>&1)
+LINK=$(/root/tcctl run --token $TCMS_TOKEN -m /home/jenkins/agent/workspace/test-plan/meta.yaml -f $FILENAME 2>&1)
 LINK=${LINK%% to open*}
 LINK=${LINK##*click}
 ID=${LINK##*plan/}

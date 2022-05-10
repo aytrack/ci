@@ -18,7 +18,7 @@ python -m cases.cli case list --case-meta > test2.log
 
 PRECASES=$(wc -l test.log | awk '{print $1}')
 CURCASES=$(wc -l test2.log | awk '{print $1}')
-CASES=`expr $CURCASES - $PRECASES`
+CASES=$[CURCASES - PRECASES]
 if [ $CASES -eq 0 ]; then
 	echo "don't have new cases"
 	exit 0

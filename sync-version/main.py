@@ -66,6 +66,8 @@ def sync_branch_cases(trigger_id):
             link = tibug.github_issues(case_name)
             c.issue_link = link
             if not tibug.github_issues_is_valid(link) or link == "empty":
+                c.exist_labels = []
+                c.add_labels = []
                 cases.append(c)
                 continue
 
@@ -98,6 +100,8 @@ def sync_to_github(**params):
     cases = sync_branch_cases(g_trigger_id)
     message = []
     for c in cases:
+        if not TiBug.github_issues_is_valid(c.issue_link) or c.issue_link == "empty":
+            continue
         if len(c.add_labels) == 0:
             continue
 
@@ -233,6 +237,8 @@ def lark_message(**params):
 
         message = []
         for c in cases:
+            if not TiBug.github_issues_is_valid(c.issue_link) or c.issue_link == "empty":
+                continue
             if len(c.add_labels) == 0:
                 continue
             message.append(c.affect_branch_rich_message("todo"))
