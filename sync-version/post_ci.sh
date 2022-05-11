@@ -77,6 +77,7 @@ git push upstream ${BRANCH}
 YAMLS=$(git diff origin/main... --stat | grep yaml | awk '{print $1}')
 ONESHOT=""
 for NAME in $(echo $YAMLS); do
+  NAME="compute/sqlfeature/"${NAME##*/}
   echo "  resourcePool: sql-coverage" >> $NAME
 	LINK=$(/root/tcctl run --token $TCMS_TOKEN -m /home/jenkins/agent/workspace/test-plan/meta.yaml -f $NAME 2>&1)
 	git checkout $NAME
