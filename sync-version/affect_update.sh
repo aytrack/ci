@@ -11,6 +11,7 @@ if [ "${TRIGGERID}" != "" ]; then
 fi
 
 for NAME in $(echo $FILENAME); do
+  echo "  resourcePool: sql-coverage" >> $NAME
   if [ $TRIGGERTYPE = "branch" ]; then
     LINK=$(/root/tcctl run --token $TCMS_TOKEN -m compute/release -f $NAME 2>&1)
   fi
@@ -18,6 +19,7 @@ for NAME in $(echo $FILENAME); do
   if [ $TRIGGERTYPE = "version" ]; then
     LINK=$(/root/tcctl run --token $TCMS_TOKEN -m compute/affected-versions -f $NAME 2>&1)
   fi
+  git checkout $NAME
 
   LINK=${LINK%%) will run later*}
   TRIGGERID=${LINK##*ID=}
