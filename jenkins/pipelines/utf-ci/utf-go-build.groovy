@@ -28,9 +28,9 @@ def main() {
             cd ticases/${params.SUITE}
             ${siteScript}
             go build -o ${targetName}
-            if [ -f suite.jsonnet ] && ! `grep -q 'std\\.extVar' suite.jsonnet`; then
-                UTF_SUITE_SCHEMA="file://$projectDir/manifests/suite.schema.json" ./${targetName} info
-            fi
+            #if [ -f suite.jsonnet ] && ! `grep -q 'std\\.extVar' suite.jsonnet`; then
+            #    UTF_SUITE_SCHEMA="file://$projectDir/manifests/suite.schema.json" ./${targetName} info
+            #fi
             
             if [ ${targetName} = "mysqltest" ]; then
                 cat <<EOF > Dockerfile
@@ -41,6 +41,14 @@ def main() {
             ENTRYPOINT ["/${targetName}"]
             EOF
                 tar -zcf ${targetName}.tar.gz ${targetName} Dockerfile t r
+            elif [ ${targetName} = "planner_oncall_test" ]; then
+                cat <<EOF > Dockerfile
+            FROM hub-new.pingcap.net/qa/utf-go-base:20210413
+            COPY ${targetName} /
+            COPY cases /cases
+            ENTRYPOINT ["/${targetName}"]
+            EOF
+                tar -zcf ${targetName}.tar.gz ${targetName} Dockerfile cases
             elif [ -f suite.jsonnet ]; then
                 cat <<EOF > Dockerfile
             FROM hub-new.pingcap.net/qa/utf-go-base:20210413
