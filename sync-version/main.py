@@ -6,7 +6,9 @@ from source.github import Github
 from case import Case
 from message.lark import Lark
 from os import walk
+import os
 import click
+import subprocess
 import yaml
 
 
@@ -263,9 +265,124 @@ def lark_message(**params):
     Lark.send("tibug affect version", message)
 
 
+@main.group("case", help="case relative command")
+def case(**params):
+    pass
+
+
+@case.command("gen", help="generate case")
+@click.option("--dsn", default="", help="used to generate case")
+@click.option("--dir", default="$HOME/automated-tests/cases/affectversion/", show_default=True, help="create/update case file in directory")
+@click.argument("case_id", nargs=1)
+def _case_gen(**params):
+    case_id = params.get("case_id")
+    if case_id is None:
+        return
+    dsn = params.get("dsn")
+
+    emails = subprocess.run(["git", "config", "--get", "user.email"], capture_output=True, text=True).stdout.split("\n")
+    email = emails[0]
+    case_class = case_id.replace("_", "")
+    case_class = case_class.replace("-", "")
+    if not case_id.startswith("TIBUG"):
+        raise Exception("unsupported " + case_id)
+
+    tibug = TiBug(Config.user, Config.pwd)
+    github_link = tibug.github_issues(case_id)
+    if not tibug.github_issues_is_valid(github_link) or github_link == "empty":
+        raise Exception("github issue field isn't link")
+    issue_number = github_link.split("/")[-1]
+    gh = Github(Config.github_token, "pingcap", "tidb")
+    data = gh.get_issue(issue_number)
+
+    sqls = gh.parse_reproduce_step(data["body"])
+    if sqls is None:
+        print("parse reproduce step failed")
+        sqls = []
+    es = []
+
+    dbclient = None
+    if dsn is not None:
+        from util.db import DBClient
+        dbclient = DBClient(dsn)
+        dbclient.execute_sql("drop database if exists case_gen;")
+        dbclient.execute_sql("create database case_gen")
+        dbclient.execute_sql("use case_gen")
+
+    for item in sqls:
+        if item.count('"'):
+            sql = "self.execute_sql('{}')".format(item)
+        else:
+            sql = 'self.execute_sql("{}")'.format(item)
+        if dbclient is not None:
+            res = dbclient.execute_sql(item)
+            if item.lower().count("select") != 0 or item.lower().count("execute") != 0:
+                sql = "res = " + sql
+            es.append(sql)
+            if item.lower().count("select") != 0 or item.lower().count("execute") != 0:
+                es.append("assert_ordered_msg(res, {})".format(res))
+        else:
+            es.append(sql)
+    content = """from cases.utils.simple import SimpleCase
+from cases.utils.meta import ClusterType, CaseMeta
+from cases.utils.asserts import assert_ordered_msg
+
+
+class {}(SimpleCase):
+    name = "{}"
+    case_meta = CaseMeta(cluster=ClusterType.Default, designer="{}", supported_versions=[">=4.0.0"],
+                         summary="{}")
+
+    def run(self):
+        {}
+    """.format(case_class, case_id, email, data["title"], "\n        ".join(es))
+
+    dir = params.get("dir")
+    if dir is None or len(dir) == 0:
+        print(content)
+        return
+    if not dir.endswith("/"):
+        dir += "/"
+    if dir == "$HOME/automated-tests/cases/affectversion/":
+        dir = os.getenv("HOME") + "/automated-tests/cases/affectversion/"
+    file_name = dir + case_id.lower() + ".py"
+    f = open(file_name, "w")
+    f.write(content)
+    f.close()
+    print("new case in {}".format(file_name))
+
+
 @main.group("check", help="check fields")
 def check(**params):
     pass
+
+
+@check.command("case", help="check cases that need to be implement")
+def check_case(**params):
+    gh = Github(Config.github_token, "pingcap", "tidb")
+    tibug = TiBug(Config.user, Config.pwd)
+    names = tibug.list()
+
+    m_invalid_link = []
+    m_auto = []
+    m_dontauto = []
+    for name in names:
+        github_link = tibug.github_issues(name)
+        if not tibug.github_issues_is_valid(github_link) or github_link == "empty":
+            m_invalid_link.append("[{}]({}) github link is invalid".format(name, tibug.link(name)))
+            continue
+
+        issue_number = github_link.split("/")[-1]
+        data = gh.get_issue(issue_number)
+        sqls = gh.parse_reproduce_step(data["body"])
+        if sqls is None:
+            m_dontauto.append("[{}]({}) [{}]({}) need to check ".format(name, tibug.link(name), issue_number, gh.link(issue_number)))
+        else:
+            m_auto.append("[{}]({}) [{}]({}) can be generated".format(name, tibug.link(name), issue_number, gh.link(issue_number)))
+
+    m_invalid_link.extend(m_auto)
+    m_invalid_link.extend(m_dontauto)
+    Lark().send("new tibug in last 1 day", m_invalid_link)
 
 
 @check.command("yaml", help="check yaml name")

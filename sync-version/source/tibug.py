@@ -1,4 +1,5 @@
 from jira import JIRA
+import datetime
 
 
 class TiBug(object):
@@ -48,6 +49,15 @@ class TiBug(object):
         issue = self.tibug_jira.issue(case_name)
         # customfield_12825 is github issue field
         return issue.fields.customfield_12825
+
+    def list(self):
+        t = datetime.datetime.utcnow() - datetime.timedelta(days=int(1))
+        issues = self.tibug_jira.search_issues('project = TIBUG AND issuetype = "Issue analysis" AND "Issue module" = TiDB AND status = "New Request" AND assignee = "wanghuichang@pingcap.com" AND created >= "{}" ORDER BY created DESC'.
+                                               format(t.strftime("%Y-%m-%d %H:%M")))
+        names = []
+        for item in issues:
+            names.append(item.key)
+        return names
 
     @staticmethod
     def github_issues_is_valid(v):
