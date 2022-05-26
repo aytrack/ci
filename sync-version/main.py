@@ -8,7 +8,6 @@ from message.lark import Lark
 from os import walk
 import os
 import click
-import subprocess
 import yaml
 
 
@@ -280,10 +279,6 @@ def _case_gen(**params):
         return
     dsn = params.get("dsn")
 
-    emails = subprocess.run(["git", "config", "--get", "user.email"], capture_output=True, text=True).stdout.split("\n")
-    email = emails[0]
-    case_class = case_id.replace("_", "")
-    case_class = case_class.replace("-", "")
     if not case_id.startswith("TIBUG"):
         raise Exception("unsupported " + case_id)
 
@@ -299,44 +294,8 @@ def _case_gen(**params):
     if sqls is None:
         print("parse reproduce step failed")
         sqls = []
-    es = []
 
-    dbclient = None
-    if dsn is not None:
-        from util.db import DBClient
-        dbclient = DBClient(dsn)
-        dbclient.execute_sql("drop database if exists case_gen;")
-        dbclient.execute_sql("create database case_gen")
-        dbclient.execute_sql("use case_gen")
-
-    for item in sqls:
-        if item.count('"'):
-            sql = "self.execute_sql('{}')".format(item)
-        else:
-            sql = 'self.execute_sql("{}")'.format(item)
-        if dbclient is not None:
-            res = dbclient.execute_sql(item)
-            if item.lower().count("select") != 0 or item.lower().count("execute") != 0:
-                sql = "res = " + sql
-            es.append(sql)
-            if item.lower().count("select") != 0 or item.lower().count("execute") != 0:
-                es.append("assert_ordered_msg(res, {})".format(res))
-        else:
-            es.append(sql)
-    content = """from cases.utils.simple import SimpleCase
-from cases.utils.meta import ClusterType, CaseMeta
-from cases.utils.asserts import assert_ordered_msg
-
-
-class {}(SimpleCase):
-    name = "{}"
-    case_meta = CaseMeta(cluster=ClusterType.Default, designer="{}", supported_versions=[">=4.0.0"],
-                         summary="{}")
-
-    def run(self):
-        {}
-    """.format(case_class, case_id, email, data["title"], "\n        ".join(es))
-
+    content = Case.gen_execute_lines(case_id,  data["title"], dsn, sqls)
     dir = params.get("dir")
     if dir is None or len(dir) == 0:
         print(content)
