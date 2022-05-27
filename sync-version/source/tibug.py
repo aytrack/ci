@@ -50,6 +50,15 @@ class TiBug(object):
         # customfield_12825 is github issue field
         return issue.fields.customfield_12825
 
+    def test_case_id(self, case_name):
+        issue = self.tibug_jira.issue(case_name)
+        # customfield_12208 is TEST_CASE_ID
+        return issue.fields.customfield_12208
+
+    def update_test_case_id(self, case_name, test_case_id):
+        issue = self.tibug_jira.issue(case_name)
+        issue.update(fields={"customfield_12208": test_case_id})
+
     def list(self):
         t = datetime.datetime.utcnow() - datetime.timedelta(days=int(1))
         issues = self.tibug_jira.search_issues('project = TIBUG AND issuetype = "Issue analysis" AND "Issue module" = TiDB AND status = "New Request" AND assignee = "wanghuichang@pingcap.com" AND created >= "{}" ORDER BY created DESC'.

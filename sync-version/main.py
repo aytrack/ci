@@ -430,13 +430,25 @@ def tibug(**params):
         if tibug.github_issues_is_valid(link):
             print("{} github issue is valid".format(name))
             continue
-        messages.append("[%s](%s)".format(name, TiBug.link(name)))
+        messages.append("[{}]({})".format(name, TiBug.link(name)))
 
-    if len(messages) == 0:
+    if len(messages) != 0:
+        Lark.send("github issue field is invalid", messages)
+    else:
         print("all tibug check passed")
-        exit(0)
 
-    Lark.send("github issue field is invalid", messages)
+    messages = []
+    for name in case_names:
+        if not name.startswith("TIBUG-"):
+            print("{} is not a TIBUG".format(name))
+            continue
+        test_case_id = tibug.test_case_id(name)
+        if test_case_id is None or test_case_id != name:
+            tibug.update_test_case_id(name, name)
+            print("{} set test_case_id".format(name))
+            messages.append("[{}]({}) set test_case_id {}".format(name, TiBug.link(name), name))
+    if len(messages) != 0:
+        Lark.send("TIBUG update test_case_id", messages)
 
 
 if __name__ == '__main__':
