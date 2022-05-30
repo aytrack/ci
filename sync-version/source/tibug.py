@@ -41,26 +41,32 @@ class TiBug(object):
 
         return update_count == 2
 
-    def github_issues(self, case_name):
+    def get(self, case_name):
         """
         :param case_name: the unique identification in jira
         :return: the value of github issue's filed
         """
+        data = {}
         issue = self.tibug_jira.issue(case_name)
         # customfield_12825 is github issue field
-        return issue.fields.customfield_12825
-
-    def test_case_id(self, case_name):
-        issue = self.tibug_jira.issue(case_name)
+        data["github_issues"] = issue.fields.customfield_12825
         # customfield_12208 is TEST_CASE_ID
-        return issue.fields.customfield_12208
+        data["test_case_id"] = issue.fields.customfield_12208
+        # customfield_12210 is issue link
+        data["issue_link"] = issue.fields.customfield_12210
+        data["priority"] = issue.fields.priority.name
+        return data
 
     def update_test_case_id(self, case_name, test_case_id):
         issue = self.tibug_jira.issue(case_name)
         issue.update(fields={"customfield_12208": test_case_id})
 
-    def list(self):
-        t = datetime.datetime.utcnow() - datetime.timedelta(days=int(1))
+    def update_priority(self, case_name, prt):
+        issue = self.tibug_jira.issue(case_name)
+        issue.update(fields={"priority": {"name": prt}})
+
+    def list(self, days):
+        t = datetime.datetime.utcnow() - datetime.timedelta(days=days)
         issues = self.tibug_jira.search_issues('project = TIBUG AND issuetype = "Issue analysis" AND "Issue module" = TiDB AND status = "New Request" AND assignee = "wanghuichang@pingcap.com" AND created >= "{}" ORDER BY created DESC'.
                                                format(t.strftime("%Y-%m-%d %H:%M")))
         names = []

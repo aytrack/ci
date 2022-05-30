@@ -64,7 +64,7 @@ def sync_branch_cases(trigger_id):
         c.case_name = case_name
         if case_name.startswith("TIBUG-"):
             c.tibug_link = tibug.link(case_name)
-            link = tibug.github_issues(case_name)
+            link = tibug.get(case_name)["github_issues"]
             c.issue_link = link
             if not tibug.github_issues_is_valid(link) or link == "empty":
                 c.exist_labels = []
@@ -283,7 +283,7 @@ def _case_gen(**params):
         raise Exception("unsupported " + case_id)
 
     tibug = TiBug(Config.user, Config.pwd)
-    github_link = tibug.github_issues(case_id)
+    github_link = tibug.get(case_id)["github_issues"]
     if not tibug.github_issues_is_valid(github_link) or github_link == "empty":
         raise Exception("github issue field isn't link")
     issue_number = github_link.split("/")[-1]
@@ -320,13 +320,15 @@ def check(**params):
 def check_case(**params):
     gh = Github(Config.github_token, "pingcap", "tidb")
     tibug = TiBug(Config.user, Config.pwd)
-    names = tibug.list()
+    names = tibug.list(1)
 
     m_invalid_link = []
     m_auto = []
     m_dontauto = []
+    m_prt = []
     for name in names:
-        github_link = tibug.github_issues(name)
+        tibug_data = tibug.get(name)
+        github_link = tibug_data["github_issues"]
         if not tibug.github_issues_is_valid(github_link) or github_link == "empty":
             m_invalid_link.append("[{}]({}) github link is invalid".format(name, tibug.link(name)))
             continue
@@ -339,10 +341,48 @@ def check_case(**params):
         else:
             m_auto.append("[{}]({}) [{}]({}) can be generated".format(name, tibug.link(name), issue_number, gh.link(issue_number)))
 
+        if tibug_data["issue_link"].count("ONCALL") == 0:
+            prt = tibug_data["priority"]
+            for item in data["labels"]:
+                if not item["name"].startswith("severity"):
+                    continue
+
+                new_prt = ""
+                if item["name"] == "severity/critical":
+                    if prt == "Blocker":
+                        continue
+                    new_prt = "Blocker"
+                elif item["name"] == "severity/major":
+                    if prt == "High":
+                        continue
+                    new_prt = "High"
+                elif item["name"] == "severity/moderate":
+                    if prt == "Medium":
+                        continue
+                    new_prt = "Medium"
+                elif item["name"] == "severity/minor":
+                    if prt == "Low":
+                        continue
+                    new_prt = "Low"
+                else:
+                    Lark().send("new severity", item["name"])
+                    continue
+                tibug.update_priority(name, new_prt)
+                m_prt.append("[{}]({}) [{}]({}) set priority {}".format(name, tibug.link(name), issue_number, gh.link(issue_number), new_prt))
+        else:
+            if tibug_data["priority"] != "Blocker":
+                new_prt = "Blocker"
+                tibug.update_priority(name, new_prt)
+                m_prt.append("[{}]({}) [{}]({}) set priority {}".format(name, tibug.link(name), issue_number, gh.link(issue_number), new_prt))
+
     m_invalid_link.extend(m_auto)
     m_invalid_link.extend(m_dontauto)
+
     if len(m_invalid_link) != 0:
         Lark().send("new tibug in last 1 day", m_invalid_link)
+
+    if len(m_prt) != 0:
+        Lark().send("update priority", m_prt)
 
 
 @check.command("yaml", help="check yaml name")
@@ -423,11 +463,20 @@ def tibug(**params):
 
     tibug = TiBug(Config.user, Config.pwd)
     messages = []
+    test_case_id_messages = []
     for name in case_names:
         if not name.startswith("TIBUG-"):
             print("{} is not a TIBUG".format(name))
             continue
-        link = tibug.github_issues(name)
+        data = tibug.get(name)
+
+        test_case_id = data["test_case_id"]
+        if test_case_id is None or test_case_id != name:
+            tibug.update_test_case_id(name, name)
+            print("{} set test_case_id".format(name))
+            test_case_id_messages.append("[{}]({}) set test_case_id {}".format(name, TiBug.link(name), name))
+
+        link = data["github_issues"]
         if tibug.github_issues_is_valid(link):
             print("{} github issue is valid".format(name))
             continue
@@ -435,21 +484,9 @@ def tibug(**params):
 
     if len(messages) != 0:
         Lark.send("github issue field is invalid", messages)
-    else:
-        print("all tibug check passed")
 
-    messages = []
-    for name in case_names:
-        if not name.startswith("TIBUG-"):
-            print("{} is not a TIBUG".format(name))
-            continue
-        test_case_id = tibug.test_case_id(name)
-        if test_case_id is None or test_case_id != name:
-            tibug.update_test_case_id(name, name)
-            print("{} set test_case_id".format(name))
-            messages.append("[{}]({}) set test_case_id {}".format(name, TiBug.link(name), name))
-    if len(messages) != 0:
-        Lark.send("TIBUG update test_case_id", messages)
+    if len(test_case_id_messages) != 0:
+        Lark.send("TIBUG update test_case_id", test_case_id_messages)
 
 
 if __name__ == '__main__':
