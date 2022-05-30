@@ -28,7 +28,7 @@ def main() {
 }
 
 def run(label, image, Closure main) {
-    podTemplate(name: label, label: label, instanceCap: 5, idleMinutes: 60, containers: [
+    podTemplate(cloud: "kubernetes-ng", name: label, namespace: "jenkins-qa", label: label, instanceCap: 5, idleMinutes: 60, containers: [
         containerTemplate(name: 'python', image: image, alwaysPullImage: true, ttyEnabled: true, command: 'cat'),
     ]) { node(label) { dir("test-plan") { main() } } }
 }

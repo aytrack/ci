@@ -2,7 +2,7 @@ def GIT_REF_SPEC = "+refs/heads/master:refs/remotes/origin/master"
 
 try {
     def label = 'utf-post-ci'
-    podTemplate(name: label, label: label, instanceCap: 3, idleMinutes: 1, containers: [
+    podTemplate(cloud: "kubernetes-ng", name: label, namespace: "jenkins-qa", label: label, instanceCap: 3, idleMinutes: 1, containers: [
         containerTemplate(name: 'python',
                           image: 'hub-new.pingcap.net/chenpeng/sync-version:latest',
                           alwaysPullImage: true,
