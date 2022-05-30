@@ -341,7 +341,8 @@ def check_case(**params):
 
     m_invalid_link.extend(m_auto)
     m_invalid_link.extend(m_dontauto)
-    Lark().send("new tibug in last 1 day", m_invalid_link)
+    if len(m_invalid_link) != 0:
+        Lark().send("new tibug in last 1 day", m_invalid_link)
 
 
 @check.command("yaml", help="check yaml name")

@@ -166,10 +166,10 @@ class Case(object):
                 sql = 'self.execute_sql("{}")'.format(item)
             if dbclient is not None:
                 res = dbclient.execute_sql(item)
-                if item.lower().count("select") != 0 or item.lower().count("execute") != 0:
+                if item.lower().startswith("select") or item.lower().startswith("execute"):
                     sql = "res = " + sql
                 es.append(sql)
-                if item.lower().count("select") != 0 or item.lower().count("execute") != 0:
+                if item.lower().startswith("select") or item.lower().startswith("execute"):
                     es.append("assert_ordered_msg(res, {})".format(res))
             else:
                 es.append(sql)

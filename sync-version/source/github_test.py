@@ -61,5 +61,42 @@ MySQL [test]> select a from t where a between b and c;
 2 rows in set (0.001 sec)```""")
         self.assertEqual(sqls, ['drop table if exists t;', 'create table t(a char(20), b binary(20), c binary(20));', "insert into t value('-1', 0x2D31, 0x67);", "insert into t value('-1', 0x2D31, 0x73);", 'select a from t where a between b and c;', 'select a from t where a between b and c;', "insert into mysql.expr_pushdown_blacklist values('cast', 'tikv','');", 'admin reload expr_pushdown_blacklist;', 'select a from t where a between b and c;'])
 
+        sqls = Github.parse_reproduce_step("""```
+use test;
+drop table if exists NT_28395;
+CREATE TABLE `NT_28395` (
+  `COL1` bit(28) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+insert into NT_28395 values(0x00DE25BE);
+select col1 from NT_28395 t1 where (select count(*) from NT_28395 t2 where t2.col1 in (t1.col1, 0x30)) > 1;```""")
+        self.assertEqual(sqls, ['use test;',
+                                'drop table if exists NT_28395;',
+                                'CREATE TABLE `NT_28395` ( `COL1` bit(28) DEFAULT NULL ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;',
+                                'insert into NT_28395 values(0x00DE25BE);',
+                                'select col1 from NT_28395 t1 where (select count(*) from NT_28395 t2 where t2.col1 in (t1.col1, 0x30)) > 1;'])
+
+        sqls = Github.parse_reproduce_step("""```
+drop table if exists t;
+CREATE TABLE `t` (
+  `a` int(11) DEFAULT NULL,
+  `b` int(11) GENERATED ALWAYS AS (`a`) STORED NOT NULL,
+  PRIMARY KEY (`b`) /*T![clustered_index] CLUSTERED */
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+insert into t(a) values(102);
+prepare stmt from "select * from t where b in (?, ?, ?)";
+set @a=102, @b=102, @c=102;
+execute stmt using @a,@b,@c;
+set @a=-97, @b=-97, @c=-97;
+execute stmt using @a,@b,@c;```""")
+        self.assertEqual(sqls, ['drop table if exists t;',
+                                'CREATE TABLE `t` ( `a` int(11) DEFAULT NULL, `b` int(11) GENERATED ALWAYS AS (`a`) STORED NOT NULL, PRIMARY KEY (`b`) /*T![clustered_index] CLUSTERED */ ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;',
+                                'insert into t(a) values(102);',
+                                'prepare stmt from "select * from t where b in (?, ?, ?)";',
+                                'set @a=102, @b=102, @c=102;',
+                                'execute stmt using @a,@b,@c;',
+                                'set @a=-97, @b=-97, @c=-97;',
+                                'execute stmt using @a,@b,@c;'])
+
+
 if __name__ == "__main__":
     unittest.main()
