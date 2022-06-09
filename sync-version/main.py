@@ -61,14 +61,15 @@ def sync_branch_cases(trigger_id):
                 affect_labels.append("affects-{}".format(v))
 
         c = Case()
+        c.affect_labels = affect_labels
         c.case_name = case_name
         if case_name.startswith("TIBUG-"):
             c.tibug_link = tibug.link(case_name)
             link = tibug.get(case_name)["github_issues"]
             c.issue_link = link
             if not tibug.github_issues_is_valid(link) or link == "empty":
-                c.exist_labels = []
-                c.add_labels = []
+                c.gh_exist_labels = []
+                c.gh_add_labels = []
                 cases.append(c)
                 continue
 
@@ -84,11 +85,11 @@ def sync_branch_cases(trigger_id):
                 continue
             add_labels.append(label)
 
-        c.exist_labels = exist_labels
-        c.add_labels = add_labels
+        c.gh_exist_labels = exist_labels
+        c.gh_add_labels = add_labels
         c.issue_link = tidb_github.link(issue_number)
-        c.add_labels.sort()
-        c.exist_labels.sort()
+        c.gh_add_labels.sort()
+        c.gh_exist_labels.sort()
         cases.append(c)
 
     return cases
@@ -103,12 +104,12 @@ def sync_to_github(**params):
     for c in cases:
         if not TiBug.github_issues_is_valid(c.issue_link) or c.issue_link == "empty":
             continue
-        if len(c.add_labels) == 0:
+        if len(c.gh_add_labels) == 0:
             continue
 
         if c.issue_number():
             # add labels to tidb issue
-            tidb_github.add_labels(c.issue_number(), c.add_labels)
+            tidb_github.add_labels(c.issue_number(), c.gh_add_labels)
             message.append(c.affect_branch_rich_message("done"))
 
     if len(message) == 0:
@@ -232,21 +233,38 @@ def pr_comment(**params):
 
 
 @sync.command("lark", help="sync tcms results to pr and add comment")
+@click.option("--check-pr", is_flag=True, help="check exceptional case")
 def lark_message(**params):
+    gh = Github(Config.github_token, "pingcap", "tidb")
     if g_trigger_type == "branch":
         cases = sync_branch_cases(g_trigger_id)
 
         message = []
+        m_cases = []
         for c in cases:
             if not TiBug.github_issues_is_valid(c.issue_link) or c.issue_link == "empty":
                 continue
-            if len(c.add_labels) == 0:
+            issue_number = c.issue_number()
+            if issue_number is not None and params.get("check_pr") is True:
+                # cases failed in affect_labels
+                pr_data = gh.list_pr(issue_number)
+                for label in c.affect_labels:
+                    branch_name = "release-" + label[len("affects-"):]
+                    # fix pr merged, but case failed
+                    for item in pr_data:
+                        if item["ref"] != branch_name:
+                            continue
+                        if item["merged"] is True:
+                            m_cases.append("[{}]({}) issue [{}]({}) pr merged, cases failed in {} ".format(c.case_name, c.tibug_link, c.issue_number(), c.issue_link, branch_name))
+
+            if len(c.gh_add_labels) == 0:
                 continue
             message.append(c.affect_branch_rich_message("todo"))
-        if len(message) == 0:
-            return
-        message.append("[更新确认](http://172.16.4.181:30000/view/utf/job/utf-affect-update/buildWithParameters?TRIGGERID={}&SYNCTYPE=github&TRIGGERTYPE=branch)".format(g_trigger_id))
-        Lark.send("issue affect branch", message)
+        if len(message) != 0:
+            message.append("[更新确认](http://172.16.4.181:30000/view/utf/job/utf-affect-update/buildWithParameters?TRIGGERID={}&SYNCTYPE=github&TRIGGERTYPE=branch)".format(g_trigger_id))
+            Lark.send("issue affect branch", message)
+        if len(m_cases) != 0:
+            Lark.send("exception", m_cases)
         return
 
     # g_tigger_type == "version"

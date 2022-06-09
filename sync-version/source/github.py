@@ -14,6 +14,8 @@ tidb_stmt_prefix = [
     "EXECUTE",
     "UPDATE",
     "ADMIN",
+    "ANALYZE",
+    "SHOW",
 ]
 
 class Github(object):
@@ -154,6 +156,40 @@ class Github(object):
                 m.append({"issue_number": issue_id, "add_labels": add_labels, "delete_labels": delete_labels})
 
         return m
+
+    def list_pr(self, issue_number):
+        print(issue_number)
+        data = []
+        page = 1
+        while True:
+            url = "https://api.github.com/repos/{}/{}/issues/{}/timeline?page={}&per_page=30".format(self.owner,
+                                                                                                     self.repo,
+                                                                                                     issue_number, page)
+            print(url)
+            res = requests.get(url, headers={"Authorization": "token {}".format(self.token)})
+            if res.status_code != 200:
+                raise Exception("unknown", res.status_code)
+
+            for item in res.json():
+                if item["event"] not in ["cross-referenced"]:
+                    continue
+                if item["source"]["issue"].get("pull_request") is None:
+                    continue
+                pr_url = item["source"]["issue"]["pull_request"]["url"]
+                print(pr_url)
+                pr_res = requests.get(pr_url, headers={"Authorization": "token {}".format(self.token)})
+                if pr_res.status_code != 200:
+                    raise Exception("unknown", pr_res.status_code)
+                merged = True
+                if pr_res.json()["merged_at"] is None or len(pr_res.json()["merged_at"]) == 0:
+                    merged = False
+                ref = pr_res.json()["base"]["ref"]
+                data.append({"url": pr_url, "merged": merged, "ref": ref})
+            if len(res.json()) < 30:
+                break
+            page = page + 1
+
+        return data
 
     def get_issue(self, issue_number):
         res = requests.get("https://api.github.com/repos/{}/{}/issues/{}".format(self.owner, self.repo, issue_number),

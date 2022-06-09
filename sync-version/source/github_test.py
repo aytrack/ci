@@ -34,6 +34,10 @@ class TestGithub(unittest.TestCase):
         g = Github("token", "pingcap", "tidb")
         g.get_issue(33912)
 
+    def test_list_pr(self):
+        g = Github("token", "pingcap", "tidb")
+        g.list_pr(31609)
+
     def test_parse_reproduce_step(self):
         sqls = Github.parse_reproduce_step("""
         ```drop table if exists t;

@@ -14,8 +14,9 @@ class Case(object):
 
         # issue affect version
         self.issue_link = None
-        self.exist_labels = exist_labels
-        self.add_labels = add_labels
+        self.affect_labels = []
+        self.gh_exist_labels = exist_labels
+        self.gh_add_labels = add_labels
 
         # tibug affect version
         self.exist_affects_versions = []
@@ -74,14 +75,14 @@ class Case(object):
                 return "[{}]({}) github issue field is empty".format(self.case_name, self.tibug_link)
             
             if status == "todo":
-                return "[{}]({}) issue {} exists {} will add labels {}".format(self.case_name, self.tibug_link, self.issue_number(), self.exist_labels, self.add_labels)
+                return "[{}]({}) issue {} exists {} will add labels {}".format(self.case_name, self.tibug_link, self.issue_number(), self.gh_exist_labels, self.gh_add_labels)
             if status == "done":
-                return "[{}]({}) issue {} exists {} added labels {}".format(self.case_name, self.tibug_link, self.issue_number(), self.exist_labels, self.add_labels)
+                return "[{}]({}) issue {} exists {} added labels {}".format(self.case_name, self.tibug_link, self.issue_number(), self.gh_exist_labels, self.gh_add_labels)
 
         if status == "todo":
-            return "{} exists {} will add labels {}".format(self.case_name, self.exist_labels, self.add_labels)
+            return "{} exists {} will add labels {}".format(self.case_name, self.gh_exist_labels, self.gh_add_labels)
         if status == "done":
-            return "{} exists {} added labels {}".format(self.case_name, self.exist_labels, self.add_labels)
+            return "{} exists {} added labels {}".format(self.case_name, self.gh_exist_labels, self.gh_add_labels)
 
     def affect_branch_rich_message(self, status):
         if self.is_tibug():
@@ -92,14 +93,14 @@ class Case(object):
                 return "[{}]({}) github issue field is empty".format(self.case_name, self.tibug_link)
             
             if status == "todo":
-                return "[{}]({}) issue [{}]({}) exists {} will add labels {}".format(self.case_name, self.tibug_link, self.issue_number(), self.issue_link, self.exist_labels, self.add_labels)
+                return "[{}]({}) issue [{}]({}) exists {} will add labels {}".format(self.case_name, self.tibug_link, self.issue_number(), self.issue_link, self.gh_exist_labels, self.gh_add_labels)
             if status == "done":
-                return "[{}]({}) issue [{}]({}) exists {} added labels {}".format(self.case_name, self.tibug_link, self.issue_number(), self.issue_link, self.exist_labels, self.add_labels)
+                return "[{}]({}) issue [{}]({}) exists {} added labels {}".format(self.case_name, self.tibug_link, self.issue_number(), self.issue_link, self.gh_exist_labels, self.gh_add_labels)
 
         if status == "todo":
-            return "[{}]({}) exists {} will add labels {}".format(self.case_name, self.issue_link, self.exist_labels, self.add_labels)
+            return "[{}]({}) exists {} will add labels {}".format(self.case_name, self.issue_link, self.gh_exist_labels, self.gh_add_labels)
         if status == "done":
-            return "[{}]({}) exists {} added labels {}".format(self.case_name, self.issue_link, self.exist_labels, self.add_labels)
+            return "[{}]({}) exists {} added labels {}".format(self.case_name, self.issue_link, self.gh_exist_labels, self.gh_add_labels)
 
     def affect_version_message(self, status):
         m = "[{}]({}) ".format(self.case_name, self.tibug_link)
@@ -166,10 +167,10 @@ class Case(object):
                 sql = 'self.execute_sql("{}")'.format(item)
             if dbclient is not None:
                 res = dbclient.execute_sql(item)
-                if item.lower().startswith("select") or item.lower().startswith("execute"):
+                if item.lower().startswith("select") or item.lower().startswith("execute") or item.lower().startswith("show"):
                     sql = "res = " + sql
                 es.append(sql)
-                if item.lower().startswith("select") or item.lower().startswith("execute"):
+                if item.lower().startswith("select") or item.lower().startswith("execute") or item.lower().startswith("show"):
                     es.append("assert_ordered_msg(res, {})".format(res))
             else:
                 es.append(sql)
