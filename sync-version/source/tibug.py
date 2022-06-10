@@ -108,3 +108,10 @@ class TiBug(object):
         for item in issue.fields.versions:
             ls.append(item.name)
         return ls
+
+    def search_github_issues(self, github_link):
+        issues = self.tibug_jira.search_issues('''"Github Issues" ~ "{}" AND project = TiBug'''.format(github_link))
+        names = []
+        for item in issues:
+            names.append(item.key)
+        return names

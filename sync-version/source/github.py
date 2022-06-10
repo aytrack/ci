@@ -16,6 +16,8 @@ tidb_stmt_prefix = [
     "ADMIN",
     "ANALYZE",
     "SHOW",
+    "DESC",
+    "EXPLAIN",
 ]
 
 class Github(object):
@@ -202,6 +204,26 @@ class Github(object):
         # body
         return res.json()
 
+    def search(self, txt):
+        page = 1
+        data = []
+        while True:
+            # https://api.github.com/search/issues?q=repo:pingcap/tidb+is:issue+created:2022-05-10..2022-06-09+label:severity/major,severity/critical
+            res = requests.get("https://api.github.com/search/issues?q=repo:{}/{}+{}&page={}&per_page=30".format(self.owner, self.repo, txt, page),
+                               headers={"Authorization": "token {}".format(self.token)})
+            if res.status_code != 200:
+                raise Exception("unknown", res.status_code)
+            for item in res.json()["items"]:
+                label = []
+                for l in item["labels"]:
+                    if l["name"].startswith("sig") or l["name"].startswith("component") or l["name"].startswith("severity"):
+                        label.append(l["name"])
+                data.append({"html_url": item["html_url"], "title": item["title"], "label": " ".join(label), "created_at": item["created_at"]})
+            if len(res.json()["items"]) < 30:
+                break
+            page = page + 1
+        return data
+
     @staticmethod
     def parse_reproduce_step(body):
         begin = body.find("```")
@@ -228,6 +250,8 @@ class Github(object):
             item = item.rstrip(" ")
             if item.startswith("MySQL [test]>"):
                 item = item[len("MySQL [test]>"):]
+            if item.startswith("mysql> "):
+                item = item[len("mysql> "):]
             item = item.lstrip(" ")
             if len(item) == 0:
                 continue

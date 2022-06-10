@@ -282,6 +282,30 @@ def lark_message(**params):
     Lark.send("tibug affect version", message)
 
 
+@main.command("report", help="generate report from github search")
+@click.option("--search", default="", help="search issues")
+def report_md(**params):
+    if len(params["search"]) == 0:
+        raise Exception("set search txt")
+
+    gh = Github(Config.github_token, "pingcap", "tidb")
+    data = gh.search(params["search"])
+    tibug = TiBug(Config.user, Config.pwd)
+    i = 0
+    print("TIBUG, tibug link, title, github link, create time, label, test case id,")
+    for item in data:
+        i = i + 1
+        github_link = item["html_url"]
+        names = tibug.search_github_issues(github_link)
+        if len(names) == 0:
+            print("None, None, {}, {}, {}, {}, None".format(item["title"], github_link, item["created_at"], item["label"]))
+        for name in names:
+            print("{}, {}, {}, {}, {}, {}, {}".format(name, tibug.link(name), item["title"], github_link,
+                                                                  item["created_at"], item["label"], tibug.get(name)["test_case_id"]))
+
+    return
+
+
 @main.group("case", help="case relative command")
 def case(**params):
     pass

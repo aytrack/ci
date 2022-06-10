@@ -101,6 +101,36 @@ execute stmt using @a,@b,@c;```""")
                                 'set @a=-97, @b=-97, @c=-97;',
                                 'execute stmt using @a,@b,@c;'])
 
+        sqls = Github.parse_reproduce_step("""```
+        mysql> create table t1(id int, key(id));
+Query OK, 0 rows affected (0.09 sec)
+
+mysql> create table t2(id int, key(id));
+Query OK, 0 rows affected (0.09 sec)
+
+mysql> explain select  /*+ merge_join(b) */ * from (select * from t1) a join (select id, count(1) from t2 group by t2.id) b on a.id=b.id;
++--------------------------------+---------+-----------+------------------------+---------------------------------------------------------------------------------------+
+| id                             | estRows | task      | access object          | operator info                                                                         |
++--------------------------------+---------+-----------+------------------------+---------------------------------------------------------------------------------------+
+| Projection_10                  | 9990.00 | root      |                        | test.t1.id, test.t2.id, Column#5                                                      |
+| └─HashJoin_23                  | 9990.00 | root      |                        | inner join, equal:[eq(test.t1.id, test.t2.id)]                                        |
+|   ├─HashAgg_36(Build)          | 7992.00 | root      |                        | group by:test.t2.id, funcs:count(1)->Column#5, funcs:firstrow(test.t2.id)->test.t2.id |
+|   │ └─IndexReader_43           | 9990.00 | root      |                        | index:IndexFullScan_42                                                                |
+|   │   └─IndexFullScan_42       | 9990.00 | cop[tikv] | table:t2, index:id(id) | keep order:false, stats:pseudo                                                        |
+|   └─IndexReader_47(Probe)      | 9990.00 | root      |                        | index:IndexFullScan_46                                                                |
+|     └─IndexFullScan_46         | 9990.00 | cop[tikv] | table:t1, index:id(id) | keep order:false, stats:pseudo                                                        |
++--------------------------------+---------+-----------+------------------------+---------------------------------------------------------------------------------------+
+7 rows in set, 1 warning (0.00 sec)
+
+mysql> show warnings;
++---------+------+------------------------------------------------------------------------------------------------------------------------------------------------+
+| Level   | Code | Message                                                                                                                                        |
++---------+------+------------------------------------------------------------------------------------------------------------------------------------------------+
+| Warning | 1815 | There are no matching table names for (b) in optimizer hint /*+ MERGE_JOIN(b) */ or /*+ TIDB_SMJ(b) */. Maybe you can use the table alias name |
++---------+------+------------------------------------------------------------------------------------------------------------------------------------------------+
+1 row in set (0.00 sec)```""")
+        self.assertEqual(sqls, ['create table t1(id int, key(id));', 'create table t2(id int, key(id));', 'explain select  /*+ merge_join(b) */ * from (select * from t1) a join (select id, count(1) from t2 group by t2.id) b on a.id=b.id;', 'show warnings;'])
+
 
 if __name__ == "__main__":
     unittest.main()
