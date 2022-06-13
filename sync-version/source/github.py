@@ -226,14 +226,15 @@ class Github(object):
 
     @staticmethod
     def parse_reproduce_step(body):
-        begin = body.find("```")
+        begin = body.find("### 1. Minimal reproduce step (Required)")
         if begin == -1:
             return None
         body = body[begin + 3:]
-        end = body.find("```")
+        end = body.find("### 2. What did you expect to see? (Required)")
         if end == -1:
             return None
         body = body[:end]
+        body = body.replace("```", "")
         if body.startswith("sql"):
             body = body[3:]
 
@@ -280,4 +281,15 @@ class Github(object):
         if len(sqls) == 0:
             return None
 
-        return sqls
+        # multi statement
+        new_sqls = []
+        for item in sqls:
+            if item.count(";") != 0:
+                for each in item.split(";"):
+                    if len(each) == 0:
+                        continue
+                    new_sqls.append(each + ";")
+            else:
+                new_sqls.append(item)
+
+        return new_sqls

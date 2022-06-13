@@ -40,6 +40,7 @@ class TestGithub(unittest.TestCase):
 
     def test_parse_reproduce_step(self):
         sqls = Github.parse_reproduce_step("""
+        ### 1. Minimal reproduce step (Required)
         ```drop table if exists t;
 create table t(a char(20), b binary(20), c binary(20));
 insert into t value('-1', 0x2D31, 0x67);
@@ -62,24 +63,30 @@ MySQL [test]> select a from t where a between b and c;
 | -1   |
 | -1   |
 +------+
-2 rows in set (0.001 sec)```""")
+2 rows in set (0.001 sec)```
+### 2. What did you expect to see? (Required)""")
         self.assertEqual(sqls, ['drop table if exists t;', 'create table t(a char(20), b binary(20), c binary(20));', "insert into t value('-1', 0x2D31, 0x67);", "insert into t value('-1', 0x2D31, 0x73);", 'select a from t where a between b and c;', 'select a from t where a between b and c;', "insert into mysql.expr_pushdown_blacklist values('cast', 'tikv','');", 'admin reload expr_pushdown_blacklist;', 'select a from t where a between b and c;'])
 
-        sqls = Github.parse_reproduce_step("""```
+        sqls = Github.parse_reproduce_step("""
+```
+### 1. Minimal reproduce step (Required)
 use test;
 drop table if exists NT_28395;
 CREATE TABLE `NT_28395` (
   `COL1` bit(28) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 insert into NT_28395 values(0x00DE25BE);
-select col1 from NT_28395 t1 where (select count(*) from NT_28395 t2 where t2.col1 in (t1.col1, 0x30)) > 1;```""")
+select col1 from NT_28395 t1 where (select count(*) from NT_28395 t2 where t2.col1 in (t1.col1, 0x30)) > 1;```
+### 2. What did you expect to see? (Required)""")
         self.assertEqual(sqls, ['use test;',
                                 'drop table if exists NT_28395;',
                                 'CREATE TABLE `NT_28395` ( `COL1` bit(28) DEFAULT NULL ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;',
                                 'insert into NT_28395 values(0x00DE25BE);',
                                 'select col1 from NT_28395 t1 where (select count(*) from NT_28395 t2 where t2.col1 in (t1.col1, 0x30)) > 1;'])
 
-        sqls = Github.parse_reproduce_step("""```
+        sqls = Github.parse_reproduce_step("""
+### 1. Minimal reproduce step (Required)
+```
 drop table if exists t;
 CREATE TABLE `t` (
   `a` int(11) DEFAULT NULL,
@@ -91,7 +98,8 @@ prepare stmt from "select * from t where b in (?, ?, ?)";
 set @a=102, @b=102, @c=102;
 execute stmt using @a,@b,@c;
 set @a=-97, @b=-97, @c=-97;
-execute stmt using @a,@b,@c;```""")
+execute stmt using @a,@b,@c;```
+### 2. What did you expect to see? (Required)""")
         self.assertEqual(sqls, ['drop table if exists t;',
                                 'CREATE TABLE `t` ( `a` int(11) DEFAULT NULL, `b` int(11) GENERATED ALWAYS AS (`a`) STORED NOT NULL, PRIMARY KEY (`b`) /*T![clustered_index] CLUSTERED */ ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;',
                                 'insert into t(a) values(102);',
@@ -101,8 +109,9 @@ execute stmt using @a,@b,@c;```""")
                                 'set @a=-97, @b=-97, @c=-97;',
                                 'execute stmt using @a,@b,@c;'])
 
-        sqls = Github.parse_reproduce_step("""```
-        mysql> create table t1(id int, key(id));
+        sqls = Github.parse_reproduce_step("""
+### 1. Minimal reproduce step (Required)```
+mysql> create table t1(id int, key(id));
 Query OK, 0 rows affected (0.09 sec)
 
 mysql> create table t2(id int, key(id));
@@ -128,8 +137,27 @@ mysql> show warnings;
 +---------+------+------------------------------------------------------------------------------------------------------------------------------------------------+
 | Warning | 1815 | There are no matching table names for (b) in optimizer hint /*+ MERGE_JOIN(b) */ or /*+ TIDB_SMJ(b) */. Maybe you can use the table alias name |
 +---------+------+------------------------------------------------------------------------------------------------------------------------------------------------+
-1 row in set (0.00 sec)```""")
+1 row in set (0.00 sec)```
+### 2. What did you expect to see? (Required)""")
         self.assertEqual(sqls, ['create table t1(id int, key(id));', 'create table t2(id int, key(id));', 'explain select  /*+ merge_join(b) */ * from (select * from t1) a join (select id, count(1) from t2 group by t2.id) b on a.id=b.id;', 'show warnings;'])
+
+        sqls = Github.parse_reproduce_step("""
+### 1. Minimal reproduce step (Required)
+drop table if exists t;
+create table t(a int);
+select * from t;
+### 2. What did you expect to see? (Required)
+""")
+        self.assertEqual(sqls, ['drop table if exists t;', 'create table t(a int);', 'select * from t;'])
+
+        # multi_statement
+        sqls = Github.parse_reproduce_step("""
+### 1. Minimal reproduce step (Required)
+drop table if exists t; create table t(a int);
+select * from t;
+### 2. What did you expect to see? (Required)
+""")
+        self.assertEqual(sqls, ['drop table if exists t;', ' create table t(a int);', 'select * from t;'])
 
 
 if __name__ == "__main__":
