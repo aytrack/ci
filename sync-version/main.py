@@ -337,7 +337,9 @@ def _case_gen(**params):
         print("parse reproduce step failed")
         sqls = []
 
-    content = Case.gen_execute_lines(case_id,  data["title"], dsn, sqls)
+    title = data["title"]
+    title = title.replace('"', "'")
+    content = Case.gen_execute_lines(case_id, title, dsn, sqls)
     dir = params.get("dir")
     if dir is None or len(dir) == 0:
         print(content)
