@@ -18,6 +18,7 @@ tidb_stmt_prefix = [
     "SHOW",
     "DESC",
     "EXPLAIN",
+    "WITH",
 ]
 
 class Github(object):
@@ -229,7 +230,7 @@ class Github(object):
         begin = body.find("### 1. Minimal reproduce step (Required)")
         if begin == -1:
             return None
-        body = body[begin + 3:]
+        body = body[begin + len("### 1. Minimal reproduce step (Required)"):]
         end = body.find("### 2. What did you expect to see? (Required)")
         if end == -1:
             return None

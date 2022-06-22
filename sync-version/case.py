@@ -167,11 +167,16 @@ class Case(object):
                 sql = 'self.execute_sql("{}")'.format(item)
             if dbclient is not None:
                 res = dbclient.execute_sql(item)
-                if item.lower().startswith("select") or item.lower().startswith("execute") or item.lower().startswith("show"):
-                    sql = "res = " + sql
+                result_words = ["select", "execute", "show", "with"]
+                for word in result_words:
+                    if item.lower().startswith(word):
+                        sql = "res = " + sql
+                        break
                 es.append(sql)
-                if item.lower().startswith("select") or item.lower().startswith("execute") or item.lower().startswith("show"):
-                    es.append("assert_ordered_msg(res, {})".format(res))
+                for word in result_words:
+                    if item.lower().startswith(word):
+                        es.append("assert_ordered_msg(res, {})".format(res))
+                        break
             else:
                 es.append(sql)
 
