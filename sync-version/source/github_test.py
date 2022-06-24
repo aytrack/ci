@@ -157,7 +157,18 @@ drop table if exists t; create table t(a int);
 select * from t;
 ### 2. What did you expect to see? (Required)
 """)
-        self.assertEqual(sqls, ['drop table if exists t;', ' create table t(a int);', 'select * from t;'])
+        self.assertEqual(sqls, ['drop table if exists t;', 'create table t(a int);', 'select * from t;'])
+
+        # filter comment
+        sqls = Github.parse_reproduce_step("""
+### 1. Minimal reproduce step (Required)
+CREATE TABLE t1(c0 INT UNIQUE);
+CREATE VIEW v1(c0) AS SELECT 1 FROM t1;
+
+SELECT v1.c0 FROM v1 WHERE (true)LIKE(v1.c0); --runtime error: invalid memory address or nil pointer dereference
+### 2. What did you expect to see? (Required)
+""")
+        self.assertEqual(sqls, ['CREATE TABLE t1(c0 INT UNIQUE);', 'CREATE VIEW v1(c0) AS SELECT 1 FROM t1;', 'SELECT v1.c0 FROM v1 WHERE (true)LIKE(v1.c0);'])
 
 
 if __name__ == "__main__":

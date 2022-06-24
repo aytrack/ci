@@ -261,7 +261,7 @@ def lark_message(**params):
                 continue
             message.append(c.affect_branch_rich_message("todo"))
         if len(message) != 0:
-            print("update link (http://172.16.4.181:30000/view/utf/job/utf-affect-update/buildWithParameters?TRIGGERID={}&SYNCTYPE=github&TRIGGERTYPE=branch)".format(g_trigger_id))
+            # print("update link (http://172.16.4.181:30000/view/utf/job/utf-affect-update/buildWithParameters?TRIGGERID={}&SYNCTYPE=github&TRIGGERTYPE=branch)".format(g_trigger_id))
             Lark.send("issue affect branch", message)
         if len(m_cases) != 0:
             Lark.send("exception", m_cases)
@@ -278,7 +278,7 @@ def lark_message(**params):
 
     if len(message) == 0:
         return
-    print("update link (http://172.16.4.181:30000/view/utf/job/utf-affect-update/buildWithParameters?TRIGGERID={}&SYNCTYPE=tibug&TRIGGERTYPE=version)".format(g_trigger_id))
+    # print("update link (http://172.16.4.181:30000/view/utf/job/utf-affect-update/buildWithParameters?TRIGGERID={}&SYNCTYPE=tibug&TRIGGERTYPE=version)".format(g_trigger_id))
     Lark.send("tibug affect version", message)
 
 

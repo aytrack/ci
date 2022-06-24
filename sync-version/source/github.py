@@ -289,7 +289,16 @@ class Github(object):
                 for each in item.split(";"):
                     if len(each) == 0:
                         continue
-                    new_sqls.append(each + ";")
+
+                    key_word_prefix = False
+                    for key_word in tidb_stmt_prefix:
+                        each = each.lstrip(" ")
+                        each = each.rstrip(" ")
+                        if each.upper().startswith(key_word):
+                            key_word_prefix = True
+                            break
+                    if key_word_prefix:
+                        new_sqls.append(each + ";")
             else:
                 new_sqls.append(item)
 
