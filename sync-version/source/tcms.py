@@ -45,8 +45,13 @@ class Tcms(object):
         for i in range(3600):
             print("sleep 10 seconds")
             time.sleep(10)
-            res = requests.get("https://tcms.pingcap.net/api/v1/plan-executions?trigger_ids={}&count=100".format(trigger_id),
-                               headers={"Authorization": "Bearer {}".format(self.token)})
+            try:
+                res = requests.get("https://tcms.pingcap.net/api/v1/plan-executions?trigger_ids={}&count=100".format(trigger_id),
+                                   headers={"Authorization": "Bearer {}".format(self.token)})
+            except Exception as e:
+                # Failed to establish a new connection: [Errno -3] Temporary failure in name resolution
+                print(e.args)
+                continue
 
             if res.status_code != 200:
                 print("unknown status_code {}".format(res.status_code))
