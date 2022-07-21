@@ -52,6 +52,12 @@ class Github(object):
                 ls.append(item)
         return ls
 
+    def is_bug(self, issue_number):
+        for item in self.issue_labels(issue_number):
+            if item.startswith("type"):
+                return item == "type/bug"
+        return False
+
     def add_labels(self, issue_number, labels):
         """
         :param issue_number: the unique identification of the issue

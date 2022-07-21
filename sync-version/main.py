@@ -78,12 +78,15 @@ def sync_branch_cases(trigger_id):
             # case_name.startswith("GH-TIDB-")
             issue_number = case_name[len("GH-TIDB-"):]
 
-        exist_labels = tidb_github.affect_labels(issue_number)
+        exist_labels = []
         add_labels = []
-        for label in affect_labels:
-            if label in exist_labels:
-                continue
-            add_labels.append(label)
+        if tidb_github.is_bug(issue_number):
+            # ignore type/enhancement issue
+            exist_labels = tidb_github.affect_labels(issue_number)
+            for label in affect_labels:
+                if label in exist_labels:
+                    continue
+                add_labels.append(label)
 
         c.gh_exist_labels = exist_labels
         c.gh_add_labels = add_labels
