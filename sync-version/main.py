@@ -454,6 +454,9 @@ def version_yaml(**params):
     if t == "version":
         new_f = []
         for item in tags:
+            if item.startswith("v4."):
+                # ignore version v4.x
+                continue
             if item + ".yaml" not in f:
                 new_f.append(item + ".yaml")
         if len(new_f) != 0:
@@ -465,6 +468,9 @@ def version_yaml(**params):
         for item in tags:
             v = Version(item)
             b = v.branch()
+            if b.startswith("4."):
+                # ignore branch 4.X
+                continue
             if "release-{}.yaml".format(b) not in f:
                 new_f.append("release-{}.yaml".format(b))
         if len(new_f) != 0:

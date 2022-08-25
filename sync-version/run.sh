@@ -51,7 +51,7 @@ curl -s -H "Authorization: token ${GITHUB_TOKEN}" -X POST -d "{\"body\": \"one_s
 
 while true; do
 	sleep 10
-	STATUS=$(curl ${URL} |  python3 -c "import json; import sys; print(json.load(sys.stdin)['data'][0]['status'])")
+	STATUS=$(curl -H "Authorization: Bearer ${TCMS_TOKEN}" ${URL} |  python3 -c "import json; import sys; print(json.load(sys.stdin)['data'][0]['status'])")
 	if [ "${STATUS}" = "FAILURE" ]; then
 		exit 1
 	elif [ "${STATUS}" = "PENDING" ]; then
