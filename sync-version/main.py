@@ -285,9 +285,31 @@ def lark_message(**params):
     Lark.send("tibug affect version", message)
 
 
-@main.command("report", help="generate report from github search")
+@main.group("report", help="report")
+def report(**params):
+    pass
+
+
+@report.command("commits", help="report fail commits")
+def report_commits(**params):
+    gh = Github(Config.github_token, "pingcap", "automated-tests")
+    cm_data = gh.list_commits(1)
+
+    message = []
+    for item in cm_data:
+        sha = item["sha"]
+        s = gh.get_commit_status(sha)
+        if s["state"] == "failure":
+            message.append("{}: {} [ci]({})".format(item["author"], item["message"], s["target_url"]))
+        elif s["state"] != "success":
+            message.append("{}: {}".format(item["author"], item["message"]))
+    if len(message) != 0:
+        Lark.send("merge ci failure", message)
+
+
+@report.command("issues", help="generate report from github search")
 @click.option("--search", default="", help="search issues")
-def report_md(**params):
+def report_issues(**params):
     if len(params["search"]) == 0:
         raise Exception("set search txt")
 

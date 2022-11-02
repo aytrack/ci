@@ -25,6 +25,7 @@ def main() {
                 python /root/sync-version/main.py check yaml --dir compute/release --type branch
                 python /root/sync-version/main.py check github --days 1
                 python /root/sync-version/main.py check case
+                python /root/sync-version/main.py report commits
                 """)
             }
         }

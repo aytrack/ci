@@ -231,6 +231,33 @@ class Github(object):
             page = page + 1
         return data
 
+    def list_commits(self, days):
+        res = requests.get("https://api.github.com/repos/{}/{}/commits".format(self.owner, self.repo), headers={"Authorization": "token {}".format(self.token)})
+        if res.status_code != 200:
+            raise Exception("unknown", res.status_code)
+
+        t = datetime.datetime.utcnow() - datetime.timedelta(days=int(days))
+        data = []
+        for item in res.json():
+            d = {"sha": item["sha"], "date": item["commit"]["author"]["date"], "author": item["commit"]["author"]["name"],
+                 "message": item["commit"]["message"]}
+            if datetime.datetime.strptime(d["date"], "%Y-%m-%dT%H:%M:%SZ") < t:
+                continue
+
+            data.append(d)
+        return data
+
+    def get_commit_status(self, sha):
+        res = requests.get("https://api.github.com/repos/{}/{}/commits/{}/status".format(self.owner, self.repo, sha), headers={"Authorization": "token {}".format(self.token)})
+        if res.status_code != 200:
+            raise Exception("unknown", res.status_code)
+
+        d = {"state": res.json()["state"]}
+        if res.json().get("statuses") is not None and len(res.json().get("statuses")) > 0:
+            d["target_url"] = res.json()["statuses"][0]["target_url"]
+
+        return d
+
     @staticmethod
     def parse_reproduce_step(body):
         begin = body.find("### 1. Minimal reproduce step (Required)")

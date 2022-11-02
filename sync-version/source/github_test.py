@@ -38,6 +38,14 @@ class TestGithub(unittest.TestCase):
         g = Github("token", "pingcap", "tidb")
         g.list_pr(31609)
 
+    def test_commit(self):
+        g = Github("token", "pingcap", "automated-tests")
+        data = g.list_commits(6)
+        print(data)
+        for item in data:
+            print(item["sha"])
+            print(g.get_commit_status(item["sha"]))
+
     def test_parse_reproduce_step(self):
         sqls = Github.parse_reproduce_step("""
         ### 1. Minimal reproduce step (Required)
