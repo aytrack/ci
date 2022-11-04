@@ -11,7 +11,6 @@ if [ "${TRIGGERID}" != "" ]; then
 fi
 
 for NAME in $(echo $FILENAME); do
-  echo "  resourcePool: sql-coverage" >> $NAME
   if [ $TRIGGERTYPE = "branch" ]; then
     LINK=$(/root/tcctl run --token $TCMS_TOKEN -m compute/release -f $NAME 2>&1)
   fi
