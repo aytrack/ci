@@ -51,15 +51,15 @@ class TiBug(object):
         # customfield_12825 is github issue field
         data["github_issues"] = issue.fields.customfield_12825
         # customfield_12208 is TEST_CASE_ID
-        data["test_case_id"] = issue.fields.customfield_12208
+        data["test_case_link"] = issue.fields.customfield_12208
         # customfield_12210 is issue link
         data["issue_link"] = issue.fields.customfield_12210
         data["priority"] = issue.fields.priority.name
         return data
 
-    def update_test_case_id(self, case_name, test_case_id):
+    def update_test_case_link(self, case_name, test_case_link):
         issue = self.tibug_jira.issue(case_name)
-        issue.update(fields={"customfield_12208": test_case_id})
+        issue.update(fields={"customfield_12208": test_case_link})
 
     def update_priority(self, case_name, prt):
         issue = self.tibug_jira.issue(case_name)

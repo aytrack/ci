@@ -527,10 +527,24 @@ def check_github(**params):
 
 @check.command("tibug", help="check tibug in yaml")
 @click.option("--yaml-file", help="yaml file")
+@click.option("--tibug-file", help="tibug file")
 def tibug(**params):
     f = open(params.get("yaml_file"))
     data = yaml.safe_load(f)
     f.close()
+
+    file1 = open(params.get("tibug_file"), 'r')
+    lines = file1.readlines()
+    file1.close()
+
+    tibug_codelink = {}
+    for l in lines:
+        ls = l.split(" ")
+        if len(ls) != 2:
+            continue
+        ls[1] = ls[1].rstrip(" ")
+        ls[1] = ls[1].rstrip("\n")
+        tibug_codelink[ls[0]] = ls[1]
 
     case_names = []
     for item in data.get("pipeline", []):
@@ -540,18 +554,22 @@ def tibug(**params):
 
     tibug = TiBug(Config.user, Config.pwd)
     messages = []
-    test_case_id_messages = []
+    test_case_link_messages = []
     for name in case_names:
         if not name.startswith("TIBUG-"):
             print("{} is not a TIBUG".format(name))
             continue
         data = tibug.get(name)
+        new_case_link = tibug_codelink.get(name)
+        if new_case_link is None:
+            print("{} is not in utf".format(name))
+            continue
 
-        test_case_id = data["test_case_id"]
-        if test_case_id is None or test_case_id != name:
-            tibug.update_test_case_id(name, name)
-            print("{} set test_case_id".format(name))
-            test_case_id_messages.append("[{}]({}) set test_case_id {}".format(name, TiBug.link(name), name))
+        test_case_link = data["test_case_link"]
+        if test_case_link is None or test_case_link != new_case_link:
+            tibug.update_test_case_link(name, new_case_link)
+            print("{} set test_case_link".format(name))
+            test_case_link_messages.append("[{}]({}) set test_case_link [utf]({})".format(name, TiBug.link(name), new_case_link))
 
         link = data["github_issues"]
         if tibug.github_issues_is_valid(link):
@@ -562,8 +580,8 @@ def tibug(**params):
     if len(messages) != 0:
         Lark.send("github issue field is invalid", messages)
 
-    if len(test_case_id_messages) != 0:
-        Lark.send("TIBUG update test_case_id", test_case_id_messages)
+    if len(test_case_link_messages) != 0:
+        Lark.send("TIBUG update test_case_link", test_case_link_messages)
 
 
 if __name__ == '__main__':
