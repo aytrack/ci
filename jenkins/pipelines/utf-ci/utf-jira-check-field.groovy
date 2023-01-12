@@ -50,6 +50,7 @@ def main() {
                 pip install -r requirements.txt
                 python -m cases.cli case list > test.log
                 python /root/sync-version/main.py check tibug --yaml-file /home/jenkins/agent/workspace/test-plan/compute/sqlfeature/utf-affectversion-auto.yaml --tibug-file /home/jenkins/agent/workspace/utf-affect-check/automated-tests/test.log
+                python /root/sync-version/main.py check tibug --yaml-file /home/jenkins/agent/workspace/test-plan/compute/sqlfeature/utf-affectversion-auto1.yaml --tibug-file /home/jenkins/agent/workspace/utf-affect-check/automated-tests/test.log
                 python /root/sync-version/main.py check yaml --dir /home/jenkins/agent/workspace/test-plan/compute/affected-versions --type version
                 python /root/sync-version/main.py check yaml --dir /home/jenkins/agent/workspace/test-plan/compute/release --type branch
                 python /root/sync-version/main.py check github --days 1

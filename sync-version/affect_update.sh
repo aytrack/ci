@@ -3,7 +3,7 @@
 set -x
 set -e
 
-FILENAME="compute/sqlfeature/utf-affectversion-auto.yaml"
+FILENAME="compute/sqlfeature/utf-affectversion-auto.yaml compute/sqlfeature/utf-affectversion-auto1.yaml"
 
 if [ "${TRIGGERID}" != "" ]; then
   python /root/sync-version/main.py sync --trigger-id $TRIGGERID --trigger-type $TRIGGERTYPE $SYNCTYPE
