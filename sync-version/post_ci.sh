@@ -110,7 +110,7 @@ done
 
 sleep 10
 
-PRID=$(/root/gh pr list --repo pingcap/test-plan --author "@me" | grep "utf-2022" | head -n 1 | awk 'BEGIN{FS="\t"}{print $1}')
+PRID=$(/root/gh pr list --repo pingcap/test-plan --author "@me" | grep "utf-2023" | head -n 1 | awk 'BEGIN{FS="\t"}{print $1}')
 URL="https://github.com/pingcap/test-plan/pull/${PRID}"
 
 curl -X POST -H "Content-Type: application/json" -d "{\"msg_type\":\"text\",\"content\":{\"text\":\"add ${CASES} cases ${URL}\"}}" https://open.feishu.cn/open-apis/bot/v2/hook/73c3d201-09e6-47dd-8cf3-55ec106ef007

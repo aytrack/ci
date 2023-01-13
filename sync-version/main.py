@@ -572,7 +572,7 @@ def tibug(**params):
             test_case_link_messages.append("[{}]({}) set test_case_link [utf]({})".format(name, TiBug.link(name), new_case_link))
 
         link = data["github_issues"]
-        if tibug.github_issues_is_valid(link):
+        if tibug.pingcap_issue_is_valid(link):
             print("{} github issue is valid".format(name))
             continue
         messages.append("[{}]({})".format(name, TiBug.link(name)))

@@ -88,6 +88,19 @@ class TiBug(object):
         return False
 
     @staticmethod
+    def pingcap_issue_is_valid(v):
+        if v is None:
+            return False
+
+        v = v.lstrip()
+        v = v.rstrip()
+        if v == "empty":
+            return True
+        if v.startswith("https://github.com/pingcap/"):
+            return True
+        return False
+
+    @staticmethod
     def link(case_name):
         return "https://internal.pingcap.net/jira/browse/" + case_name
 
