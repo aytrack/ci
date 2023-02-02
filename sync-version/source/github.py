@@ -145,6 +145,8 @@ class Github(object):
                     raise Exception("unknown", res.status_code)
 
                 for item in res.json():
+                    if item is None:
+                        continue
                     if datetime.datetime.strptime(item["created_at"], "%Y-%m-%dT%H:%M:%SZ") < t:
                         continue
                     if item["event"] not in ["unlabeled", "labeled"]:
