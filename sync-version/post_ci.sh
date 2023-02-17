@@ -7,7 +7,7 @@ git config --global url."https://${GITHUB_TOKEN}:x-oauth-basic@github.com/".inst
 git config --global user.email "chenpeng@pingcap.com"
 git config --global user.name "ChenPeng2013"
 
-export YAML_PATH="/home/jenkins/agent/workspace/test-plan/compute/sqlfeature/"
+export YAML_PATH="/home/jenkins/agent/workspace/test-plan/compute/sqlfeature/,/home/jenkins/agent/workspace/test-plan/release/dailyrun/compute/sqlfeature/"
 
 git checkout $BEFORE
 python -m cases.cli case list --case-meta > test.log
