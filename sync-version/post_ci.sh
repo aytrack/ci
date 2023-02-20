@@ -70,14 +70,18 @@ set -e
 
 BRANCH="utf-"$(date +%Y%m%d-%H%M)
 git checkout -b ${BRANCH}
-git add compute/sqlfeature/*.yaml
+git add compute/sqlfeature/*.yaml release/dailyrun/compute/sqlfeature/*.yaml
 git commit -m "add cases"
 git push upstream ${BRANCH}
 
 YAMLS=$(git diff origin/main... --stat | grep yaml | awk '{print $1}')
 ONESHOT=""
 for NAME in $(echo $YAMLS); do
-  NAME="compute/sqlfeature/"${NAME##*/}
+  NAMENEW="compute/sqlfeature/"${NAME##*/}
+  if [ ! -f "$NAMENEW" ]; then
+    NAMENEW="release/dailyrun/compute/sqlfeature/"${NAME##*/}
+  fi
+  NAME=$NAMENEW
 	LINK=$(/root/tcctl run --token $TCMS_TOKEN -m /home/jenkins/agent/workspace/test-plan/meta.yaml -f $NAME 2>&1)
 	git checkout $NAME
 	LINK=${LINK%% to open*}
