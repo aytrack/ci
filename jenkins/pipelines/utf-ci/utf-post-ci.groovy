@@ -4,7 +4,7 @@ try {
     def label = 'utf-post-ci'
     podTemplate(cloud: "kubernetes-ng", name: label, namespace: "jenkins-qa", label: label, instanceCap: 3, idleMinutes: 1, containers: [
         containerTemplate(name: 'python',
-                          image: 'hub-new.pingcap.net/chenpeng/sync-version:latest',
+                          image: 'hub.pingcap.net/qa/utf-sync-version:latest',
                           alwaysPullImage: true,
                           ttyEnabled: true)
     ]) {
@@ -25,7 +25,7 @@ try {
                                                 [$class: 'UserIdentity', email: 'sre-bot@pingcap.com', name: 'sre-bot']],
                             userRemoteConfigs: [[credentialsId: 'github-sre-bot',
                                                 refspec: GIT_REF_SPEC,
-                                                url: 'https://github.com/pingcap/automated-tests.git']],
+                                                url: 'https://github.com/PingCAP-QE/automated-tests.git']],
                         ]
                     )
                 }
@@ -43,7 +43,7 @@ try {
                                                 [$class: 'UserIdentity', email: 'sre-bot@pingcap.com', name: 'sre-bot']],
                             userRemoteConfigs: [[credentialsId: 'github-sre-bot',
                                                 refspec: "+refs/heads/main:refs/remotes/origin/main",
-                                                url: 'https://github.com/pingcap/test-plan.git']],
+                                                url: 'https://github.com/PingCAP-QE/test-plan.git']],
                         ]
                     )
                 }
@@ -71,7 +71,7 @@ try {
         try {
             step([
                 $class: "GitHubCommitStatusSetter",
-                reposSource: [$class: "ManuallyEnteredRepositorySource", url: "https://github.com/pingcap/automated-tests.git"],
+                reposSource: [$class: "ManuallyEnteredRepositorySource", url: "https://github.com/PingCAP-QE/automated-tests.git"],
                 statusResultSource: [
                     $class: "ConditionalStatusResultSource",
                     results: [
