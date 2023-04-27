@@ -26,7 +26,7 @@ def main(tag, branch, pr) {
         checkout(changelog: false, poll: false, scm: [
             $class           : "GitSCM",
             branches         : [[name: branch]],
-            userRemoteConfigs: [[url: "https://github.com/pingcap/automated-tests.git",
+            userRemoteConfigs: [[url: "https://github.com/PingCAP-QE/automated-tests.git",
                                  refspec: "+refs/heads/*:refs/remotes/origin/* +refs/pull/*/head:refs/remotes/origin/pr/*", credentialsId: "github-sre-bot"]],
             extensions       : [[$class: 'PruneStaleBranch'], [$class: 'CleanBeforeCheckout']],
         ])
@@ -44,7 +44,7 @@ def main(tag, branch, pr) {
                                     [$class: 'UserIdentity', email: 'sre-bot@pingcap.com', name: 'sre-bot']],
                 userRemoteConfigs: [[credentialsId: 'github-sre-bot',
                                     refspec: "+refs/heads/main:refs/remotes/origin/main",
-                                    url: 'https://github.com/pingcap/test-plan.git']],
+                                    url: 'https://github.com/PingCAP-QE/test-plan.git']],
             ]
         )
     }
@@ -76,7 +76,7 @@ def runUTFPy(args) {
     // try to create one_shot
 
     podTemplate(cloud: "kubernetes-ng", name: "utf-one-shot", namespace: "jenkins-qa", label: "utf-one-shot", instanceCap: 5, idleMinutes: 60, containers: [
-        containerTemplate(name: 'python', image: 'hub-new.pingcap.net/chenpeng/sync-version:latest', alwaysPullImage: true, ttyEnabled: true, command: 'cat'),
+        containerTemplate(name: 'python', image: 'hub.pingcap.net/qa/utf-sync-version:latest', alwaysPullImage: true, ttyEnabled: true, command: 'cat'),
     ]) { node("utf-one-shot") { dir("automated-tests") { main(tag, "pr/"+params.ghprbPullId, params.ghprbPullId) } } }
 }
 
