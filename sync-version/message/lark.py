@@ -43,7 +43,7 @@ class Lark(object):
         } """ % (",".join(elements), head)
 
         print(data)
-        res = requests.post("https://open.feishu.cn/open-apis/bot/v2/hook/00e93570-c21a-464a-a0b9-6a708eb5d6cc", data=data,
+        res = requests.post("https://open.feishu.cn/open-apis/bot/v2/hook/f811e70b-b7a6-4b36-8b0b-c71f819d7435", data=data,
                             headers={"Content-Type": "application/json"})
         if res.status_code != 200:
             raise Exception("send lark message failed")
